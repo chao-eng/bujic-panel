@@ -61,7 +61,7 @@ export default function LoginPage() {
           {/* Logo 区域 */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-lg mb-4">
-              <span className="font-heading font-extrabold text-2xl text-white select-none">AG</span>
+              <span className="font-heading font-extrabold text-2xl text-white select-none">BJ</span>
             </div>
             <h1 className="font-heading text-2xl font-bold tracking-tight text-white mb-2">
               {t.loginTitle}

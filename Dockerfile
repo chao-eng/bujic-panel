@@ -31,9 +31,9 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 # 安装 openssl 确保 Prisma Engine (Rust 编写的本地二进制文件) 在 Alpine 下正常运行
-# 并在全局安装极轻量的 prisma (用于执行数据库迁移部署)，随后清理 npm 缓存
+# 并在全局安装相同版本的 prisma (用于执行数据库迁移部署，锁定 v6 以防 v7 破坏性变更破坏构建)，随后清理 npm 缓存
 RUN apk add --no-cache openssl && \
-    npm install -g prisma && \
+    npm install -g prisma@6.19.3 && \
     npm cache clean --force
 
 # 设置生产环境变量

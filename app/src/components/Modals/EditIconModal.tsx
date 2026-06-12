@@ -157,6 +157,22 @@ export default function EditIconModal({
     }
   };
 
+  const handleIconSrcChange = (val: string) => {
+    const isSvg = /^\s*<svg[\s\S]*<\/svg>\s*$/i.test(val);
+    if (isSvg) {
+      try {
+        const cleanedSvg = val.trim();
+        const base64 = window.btoa(unescape(encodeURIComponent(cleanedSvg)));
+        setIconSrc(`data:image/svg+xml;base64,${base64}`);
+        setIconType(1); // 标识为外部图片模式
+      } catch (err) {
+        setIconSrc(val);
+      }
+    } else {
+      setIconSrc(val);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !url.trim() || groupId === 0) return;
@@ -289,7 +305,7 @@ export default function EditIconModal({
 
           {/* 图标与上传 */}
           <div className="space-y-1.5">
-            <Label className="text-white/60 text-xs font-medium">图标素材 (图片链接/本地上传/内置标识)</Label>
+            <Label className="text-white/60 text-xs font-medium">图标素材 (支持链接、本地上传、内置标识，或粘贴 SVG 代码)</Label>
             <div className="flex items-center gap-3">
               {/* 实时预览 */}
               <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 text-indigo-400 flex-shrink-0">
@@ -311,9 +327,9 @@ export default function EditIconModal({
               <div className="flex-1 flex gap-2">
                 <Input
                   type="text"
-                  placeholder="例如: /uploads/... 或 lucide:globe"
+                  placeholder="图片链接 / lucide:图标 / 直接粘贴 SVG 代码"
                   value={iconSrc}
-                  onChange={(e) => setIconSrc(e.target.value)}
+                  onChange={(e) => handleIconSrcChange(e.target.value)}
                   className="flex-1 bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20 text-xs"
                 />
                 <div className="relative">

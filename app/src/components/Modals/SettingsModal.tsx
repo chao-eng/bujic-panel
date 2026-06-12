@@ -110,7 +110,7 @@ export default function SettingsModal({
             setAboutText(data.data.about || t.defaultAboutText);
           }
         })
-        .catch(() => {});
+        .catch(() => { });
 
       if (currentUser.role === 1) {
         loadUsersList();
@@ -283,7 +283,7 @@ export default function SettingsModal({
       if (exportBtn) {
         exportBtn.click();
       }
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const handleImportConfig = () => {
@@ -295,7 +295,7 @@ export default function SettingsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[620px] bg-[#12131a]/95 border border-white/5 text-white/90 rounded-2xl backdrop-blur-xl p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[720px] bg-[#12131a]/95 border border-white/5 text-white/90 rounded-2xl backdrop-blur-xl p-0 overflow-hidden">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle className="font-heading text-lg font-bold text-white flex items-center gap-2">
             <span>{t.settings}</span>
@@ -661,11 +661,10 @@ export default function SettingsModal({
                       key={th.id}
                       type="button"
                       onClick={() => setTheme(th.id as ThemeId)}
-                      className={`relative flex flex-col items-start gap-2 p-3 rounded-xl border transition cursor-pointer ${
-                        isActive
-                          ? 'border-[var(--primary)] bg-[var(--primary)]/10 ring-1 ring-[var(--primary)]/40'
-                          : 'border-white/5 bg-white/5 hover:bg-white/10'
-                      }`}
+                      className={`relative flex flex-col items-start gap-2 p-3 rounded-xl border transition cursor-pointer ${isActive
+                        ? 'border-[var(--primary)] bg-[var(--primary)]/10 ring-1 ring-[var(--primary)]/40'
+                        : 'border-white/5 bg-white/5 hover:bg-white/10'
+                        }`}
                     >
                       <div
                         className="w-full h-10 rounded-lg"

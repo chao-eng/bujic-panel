@@ -45,34 +45,48 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* ===== Theme-aware Tailwind color remapping =====
+     将 Tailwind 的 indigo 系列全部映射到主题主色，
+     所有组件的 bg-indigo-* / text-indigo-* 自动跟随主题。 */
+  --color-indigo-500: var(--primary);
+  --color-indigo-600: color-mix(in oklch, var(--primary) 88%, black 12%);
+  --color-indigo-400: color-mix(in oklch, var(--primary) 85%, white 15%);
+  --color-indigo-300: color-mix(in oklch, var(--primary) 65%, white 35%);
+  --color-indigo-200: color-mix(in oklch, var(--primary) 45%, white 55%);
+  --color-indigo-100: color-mix(in oklch, var(--primary) 20%, white 80%);
 }
 
+/* ========================================================
+   THEME: 宇宙 — Cosmos (default)
+   Deep space indigo / violet
+======================================================== */
 :root {
   --background: oklch(0.08 0.015 250);
   --foreground: oklch(0.95 0.01 240);
-  
+
   --card: rgba(20, 21, 28, 0.45);
   --card-foreground: oklch(0.95 0.01 240);
   --popover: oklch(0.12 0.02 250);
   --popover-foreground: oklch(0.95 0.01 240);
-  
+
   --primary: oklch(0.65 0.18 260);
   --primary-foreground: oklch(0.08 0.015 250);
-  
+
   --secondary: oklch(0.18 0.03 250);
   --secondary-foreground: oklch(0.95 0.01 240);
-  
+
   --muted: oklch(0.15 0.02 250);
   --muted-foreground: oklch(0.65 0.02 240);
-  
+
   --accent: oklch(0.65 0.18 260 / 15%);
   --accent-foreground: oklch(0.8 0.1 260);
-  
+
   --destructive: oklch(0.55 0.2 25);
   --border: rgba(255, 255, 255, 0.06);
   --input: rgba(255, 255, 255, 0.08);
   --ring: oklch(0.65 0.18 260);
-  
+
   --radius: 0.75rem;
 
   --sidebar: oklch(0.08 0.015 250);
@@ -83,6 +97,202 @@
   --sidebar-accent-foreground: oklch(0.95 0.01 240);
   --sidebar-border: rgba(255, 255, 255, 0.05);
   --sidebar-ring: oklch(0.65 0.18 260);
+
+  /* Theme gradient & glow tokens */
+  --grad-a-rgb: 99, 102, 241;
+  --grad-b-rgb: 139, 92, 246;
+  --grad-c-rgb: 16, 185, 129;
+  --glow-a: #6366f1;
+  --glow-b: #8b5cf6;
+  --glow-c: #3b82f6;
+}
+
+/* ========================================================
+   THEME: 炽焰 — Ember
+   Warm amber / fire
+======================================================== */
+[data-theme="ember"] {
+  --background: oklch(0.075 0.013 35);
+  --foreground: oklch(0.95 0.012 50);
+
+  --card: rgba(22, 16, 10, 0.45);
+  --card-foreground: oklch(0.95 0.012 50);
+  --popover: oklch(0.11 0.018 35);
+  --popover-foreground: oklch(0.95 0.012 50);
+
+  --primary: oklch(0.72 0.19 38);
+  --primary-foreground: oklch(0.08 0.012 35);
+
+  --secondary: oklch(0.17 0.025 35);
+  --secondary-foreground: oklch(0.95 0.012 50);
+
+  --muted: oklch(0.14 0.018 35);
+  --muted-foreground: oklch(0.62 0.03 40);
+
+  --accent: oklch(0.72 0.19 38 / 15%);
+  --accent-foreground: oklch(0.85 0.13 38);
+
+  --destructive: oklch(0.55 0.2 25);
+  --border: rgba(255, 200, 100, 0.07);
+  --input: rgba(255, 200, 100, 0.09);
+  --ring: oklch(0.72 0.19 38);
+
+  --sidebar: oklch(0.075 0.013 35);
+  --sidebar-foreground: oklch(0.95 0.012 50);
+  --sidebar-primary: oklch(0.72 0.19 38);
+  --sidebar-primary-foreground: oklch(0.08 0.012 35);
+  --sidebar-accent: oklch(0.72 0.19 38 / 10%);
+  --sidebar-accent-foreground: oklch(0.95 0.012 50);
+  --sidebar-border: rgba(255, 200, 100, 0.06);
+  --sidebar-ring: oklch(0.72 0.19 38);
+
+  --grad-a-rgb: 249, 115, 22;
+  --grad-b-rgb: 239, 68, 68;
+  --grad-c-rgb: 234, 179, 8;
+  --glow-a: #f97316;
+  --glow-b: #ef4444;
+  --glow-c: #eab308;
+}
+
+/* ========================================================
+   THEME: 极光 — Aurora
+   Emerald / teal forest glow
+======================================================== */
+[data-theme="aurora"] {
+  --background: oklch(0.075 0.015 165);
+  --foreground: oklch(0.95 0.01 160);
+
+  --card: rgba(10, 20, 17, 0.45);
+  --card-foreground: oklch(0.95 0.01 160);
+  --popover: oklch(0.115 0.02 165);
+  --popover-foreground: oklch(0.95 0.01 160);
+
+  --primary: oklch(0.68 0.18 162);
+  --primary-foreground: oklch(0.08 0.015 165);
+
+  --secondary: oklch(0.17 0.026 162);
+  --secondary-foreground: oklch(0.95 0.01 160);
+
+  --muted: oklch(0.14 0.02 162);
+  --muted-foreground: oklch(0.62 0.025 160);
+
+  --accent: oklch(0.68 0.18 162 / 15%);
+  --accent-foreground: oklch(0.85 0.12 162);
+
+  --destructive: oklch(0.55 0.2 25);
+  --border: rgba(100, 220, 180, 0.07);
+  --input: rgba(100, 220, 180, 0.09);
+  --ring: oklch(0.68 0.18 162);
+
+  --sidebar: oklch(0.075 0.015 165);
+  --sidebar-foreground: oklch(0.95 0.01 160);
+  --sidebar-primary: oklch(0.68 0.18 162);
+  --sidebar-primary-foreground: oklch(0.08 0.015 165);
+  --sidebar-accent: oklch(0.68 0.18 162 / 10%);
+  --sidebar-accent-foreground: oklch(0.95 0.01 160);
+  --sidebar-border: rgba(100, 220, 180, 0.06);
+  --sidebar-ring: oklch(0.68 0.18 162);
+
+  --grad-a-rgb: 16, 185, 129;
+  --grad-b-rgb: 6, 182, 212;
+  --grad-c-rgb: 20, 184, 166;
+  --glow-a: #10b981;
+  --glow-b: #06b6d4;
+  --glow-c: #14b8a6;
+}
+
+/* ========================================================
+   THEME: 樱花 — Sakura
+   Rose / pink / cherry blossoms
+======================================================== */
+[data-theme="sakura"] {
+  --background: oklch(0.075 0.015 350);
+  --foreground: oklch(0.95 0.01 350);
+
+  --card: rgba(22, 10, 16, 0.45);
+  --card-foreground: oklch(0.95 0.01 350);
+  --popover: oklch(0.115 0.02 350);
+  --popover-foreground: oklch(0.95 0.01 350);
+
+  --primary: oklch(0.67 0.22 349);
+  --primary-foreground: oklch(0.08 0.015 350);
+
+  --secondary: oklch(0.17 0.03 349);
+  --secondary-foreground: oklch(0.95 0.01 350);
+
+  --muted: oklch(0.14 0.022 349);
+  --muted-foreground: oklch(0.62 0.03 350);
+
+  --accent: oklch(0.67 0.22 349 / 15%);
+  --accent-foreground: oklch(0.85 0.15 349);
+
+  --destructive: oklch(0.55 0.2 25);
+  --border: rgba(240, 100, 160, 0.07);
+  --input: rgba(240, 100, 160, 0.09);
+  --ring: oklch(0.67 0.22 349);
+
+  --sidebar: oklch(0.075 0.015 350);
+  --sidebar-foreground: oklch(0.95 0.01 350);
+  --sidebar-primary: oklch(0.67 0.22 349);
+  --sidebar-primary-foreground: oklch(0.08 0.015 350);
+  --sidebar-accent: oklch(0.67 0.22 349 / 10%);
+  --sidebar-accent-foreground: oklch(0.95 0.01 350);
+  --sidebar-border: rgba(240, 100, 160, 0.06);
+  --sidebar-ring: oklch(0.67 0.22 349);
+
+  --grad-a-rgb: 236, 72, 153;
+  --grad-b-rgb: 244, 63, 94;
+  --grad-c-rgb: 217, 70, 239;
+  --glow-a: #ec4899;
+  --glow-b: #f43f5e;
+  --glow-c: #d946ef;
+}
+
+/* ========================================================
+   THEME: 冰川 — Arctic
+   Icy cyan / sky blue
+======================================================== */
+[data-theme="arctic"] {
+  --background: oklch(0.075 0.013 210);
+  --foreground: oklch(0.95 0.01 210);
+
+  --card: rgba(8, 16, 22, 0.45);
+  --card-foreground: oklch(0.95 0.01 210);
+  --popover: oklch(0.115 0.018 210);
+  --popover-foreground: oklch(0.95 0.01 210);
+
+  --primary: oklch(0.72 0.16 210);
+  --primary-foreground: oklch(0.08 0.013 210);
+
+  --secondary: oklch(0.17 0.024 210);
+  --secondary-foreground: oklch(0.95 0.01 210);
+
+  --muted: oklch(0.14 0.018 210);
+  --muted-foreground: oklch(0.62 0.025 210);
+
+  --accent: oklch(0.72 0.16 210 / 15%);
+  --accent-foreground: oklch(0.85 0.11 210);
+
+  --destructive: oklch(0.55 0.2 25);
+  --border: rgba(80, 200, 240, 0.07);
+  --input: rgba(80, 200, 240, 0.09);
+  --ring: oklch(0.72 0.16 210);
+
+  --sidebar: oklch(0.075 0.013 210);
+  --sidebar-foreground: oklch(0.95 0.01 210);
+  --sidebar-primary: oklch(0.72 0.16 210);
+  --sidebar-primary-foreground: oklch(0.08 0.013 210);
+  --sidebar-accent: oklch(0.72 0.16 210 / 10%);
+  --sidebar-accent-foreground: oklch(0.95 0.01 210);
+  --sidebar-border: rgba(80, 200, 240, 0.06);
+  --sidebar-ring: oklch(0.72 0.16 210);
+
+  --grad-a-rgb: 6, 182, 212;
+  --grad-b-rgb: 14, 165, 233;
+  --grad-c-rgb: 59, 130, 246;
+  --glow-a: #06b6d4;
+  --glow-b: #0ea5e9;
+  --glow-c: #3b82f6;
 }
 
 @layer base {
@@ -92,34 +302,24 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
-    background-image: 
-      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.08) 0px, transparent 50%),
-      radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.03) 0px, transparent 50%);
+    background-image:
+      radial-gradient(at 0% 0%,   rgba(var(--grad-a-rgb), 0.09) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(var(--grad-b-rgb), 0.09) 0px, transparent 50%),
+      radial-gradient(at 50% 100%,rgba(var(--grad-c-rgb), 0.04) 0px, transparent 50%);
     background-attachment: fixed;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
 
-/* 优雅炫酷的滚动条设计 */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
+/* 优雅滚动条 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.08);
   border-radius: 9999px;
   transition: background 0.3s;
 }
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
 
 /* 毛玻璃拟态基础样式 */
 .glass-panel {
@@ -129,42 +329,34 @@
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
   transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
 }
-
 .glass-panel:hover {
-  border-color: rgba(99, 102, 241, 0.25);
-  box-shadow: 0 8px 32px 0 rgba(99, 102, 241, 0.1);
+  border-color: color-mix(in srgb, var(--glow-a) 25%, transparent);
+  box-shadow: 0 8px 32px 0 color-mix(in srgb, var(--glow-a) 10%, transparent);
 }
 
-/* 呼吸灯效果 */
-.glow-effect {
-  position: relative;
-}
+/* 呼吸辉光装饰边框 */
+.glow-effect { position: relative; }
 .glow-effect::after {
   content: '';
   position: absolute;
   inset: -1px;
   border-radius: inherit;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6, #3b82f6);
+  background: linear-gradient(90deg, var(--glow-a), var(--glow-b), var(--glow-c));
   z-index: -1;
   opacity: 0;
   transition: opacity 0.3s ease;
 }
-.glow-effect:hover::after {
-  opacity: 0.25;
-}
+.glow-effect:hover::after { opacity: 0.25; }
 
 /* 侧边栏活动指示器呼吸灯 */
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 4px #6366f1, 0 0 10px #6366f1;
+    box-shadow: 0 0 4px var(--glow-a), 0 0 10px var(--glow-a);
     opacity: 0.8;
   }
   50% {
-    box-shadow: 0 0 8px #8b5cf6, 0 0 20px #8b5cf6;
+    box-shadow: 0 0 8px var(--glow-b), 0 0 20px var(--glow-b);
     opacity: 1;
   }
 }
-
-.active-glow {
-  animation: pulse-glow 3s infinite;
-}
+.active-glow { animation: pulse-glow 3s infinite; }

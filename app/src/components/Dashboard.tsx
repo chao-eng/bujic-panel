@@ -123,20 +123,16 @@ export default function Dashboard({
 
   // 拖拽完排序本地更新并静默调用 Server Action 物理保存
   const handleReorderIcons = async (groupId: number, reordered: ItemIconType[]) => {
-    // 1. 本地立即更新 (乐观 UI)
-    const updatedIcons = icons.map((icon) => {
-      if (icon.itemIconGroupId === groupId) {
-        const found = reordered.find((ri) => ri.id === icon.id);
-        if (found) return found;
-      }
-      return icon;
-    });
-    setIcons(updatedIcons);
+    // 1. 乐观 UI：用新顺序替换该分组图标（保留其他分组不变）
+    //    注意：不能用 .map() 原序遍历，那样只会更新数据不会改变顺序。
+    const otherIcons = icons.filter((icon) => icon.itemIconGroupId !== groupId);
+    const reorderedWithSort = reordered.map((item, idx) => ({ ...item, sort: idx + 1 }));
+    setIcons([...otherIcons, ...reorderedWithSort]);
 
-    // 2. 构造排序提交数据
-    const sortItems = reordered.map((item, idx) => ({
+    // 2. 构造排序提交数据并保存至数据库
+    const sortItems = reorderedWithSort.map((item) => ({
       id: item.id,
-      sort: idx + 1,
+      sort: item.sort,
     }));
 
     try {

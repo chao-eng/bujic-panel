@@ -1,0 +1,142 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 对应 models.User
+model User {
+  id           Int      @id @default(autoincrement())
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  username     String   @unique @map("username")
+  password     String
+  name         String?
+  headImage    String?  @map("head_image")
+  status       Int      @default(1) // 1: 启用, 2: 停用, 3: 未激活
+  role         Int      @default(2) // 1: 管理员, 2: 普通用户
+  mail         String?
+  referralCode String?  @map("referral_code")
+  token        String?  @unique
+
+  // 关系映射
+  itemIcons      ItemIcon[]
+  itemIconGroups ItemIconGroup[]
+  moduleConfigs  ModuleConfig[]
+  files          File[]
+
+  @@index([username, password])
+  @@map("user")
+}
+
+// 对应 models.SystemSetting
+model SystemSetting {
+  id          Int    @id @default(autoincrement())
+  configName  String @unique @map("config_name")
+  configValue String @map("config_value")
+
+  @@map("system_setting")
+}
+
+// 对应 models.ItemIcon
+model ItemIcon {
+  id              Int      @id @default(autoincrement())
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  iconJson        String   @map("icon_json") // SQLite 平替：存储 stringify 后的 datatype.ItemIconIconInfo JSON 串
+  title           String
+  url             String
+  lanUrl          String?  @map("lan_url")
+  description     String?
+  openMethod      Int      @default(1) @map("open_method")
+  sort            Int      @default(9999)
+  pinned          Boolean  @default(false)
+  itemIconGroupId Int      @map("item_icon_group_id")
+  userId          Int      @map("user_id")
+
+  // 外键关联定义
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group ItemIconGroup @relation(fields: [itemIconGroupId], references: [id], onDelete: Cascade)
+
+  @@index([url, userId])
+  @@map("item_icon")
+}
+
+// 对应 models.ItemIconGroup
+model ItemIconGroup {
+  id          Int        @id @default(autoincrement())
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  icon        String
+  title       String
+  description String?
+  sort        Int        @default(1)
+  groupType   String     @default("website") @map("group_type") // website | webpage
+  userId      Int        @map("user_id")
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items ItemIcon[]
+
+  @@index([userId, groupType])
+  @@map("item_icon_group")
+}
+
+// 对应 models.ModuleConfig
+model ModuleConfig {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  userId    Int      @map("user_id")
+  name      String
+  valueJson String   @map("value_json")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
+  @@map("module_config")
+}
+
+// 对应 models.UserConfig
+model UserConfig {
+  userId           Int    @id @map("user_id")
+  panelJson        String @map("panel_json")
+  searchEngineJson String @map("search_engine_json")
+
+  @@map("user_config")
+}
+
+// 对应 models.File
+model File {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  src       String
+  userId    Int      @map("user_id")
+  fileName  String   @map("file_name")
+  method    Int      @default(1)
+  ext       String
+  fileType  String   @default("") @map("file_type") // icon | wallpaper | ""
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("file")
+}
+
+// 对应 models.Notice
+model Notice {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  title       String
+  content     String
+  displayType Int      @map("display_type") // 1: 登录页, 2: 首页
+  oneRead     Int      @default(0) @map("one_read") // 1: 记录已读, 0: 每次展示
+  url         String?
+  isLogin     Int      @default(0) @map("is_login") // 1: 登录可见, 0: 游客可见
+  userId      Int      @map("user_id")
+
+  @@map("notice")
+}

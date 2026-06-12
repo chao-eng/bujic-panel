@@ -31,7 +31,22 @@ export default function RootLayout({
     <html
       lang="zh"
       className={`${outfit.variable} ${plusJakartaSans.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                var saved = localStorage.getItem('bujic-theme');
+                if (saved && saved !== 'blueprint') {
+                  document.documentElement.setAttribute('data-theme', saved);
+                }
+              } catch (e) {}
+            `,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col font-sans">
         <I18nProvider>
           {children}

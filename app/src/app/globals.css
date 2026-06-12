@@ -61,7 +61,73 @@
    THEME: 宇宙 — Cosmos (default)
    Deep space indigo / violet
 ======================================================== */
-:root {
+:root, [data-theme="blueprint"] {
+  /* ========================================================
+     THEME: 午夜蓝图 — Midnight Blueprint (default)
+     Midnight slate & acid yellow/cyan industrial control theme
+     ======================================================== */
+  --background: #0B0E14;        /* bg-abyss */
+  --foreground: #E8E4DF;        /* text-bone */
+
+  --card: #151A22;              /* bg-surface */
+  --card-foreground: #E8E4DF;   /* text-bone */
+  --popover: #151A22;           /* bg-surface */
+  --popover-foreground: #E8E4DF;
+
+  --primary: #A8C500;           /* accent-acid */
+  --primary-foreground: #0B0E14;
+
+  --secondary: #1F2633;         /* bg-elevated */
+  --secondary-foreground: #E8E4DF;
+
+  --muted: #1F2633;             /* bg-elevated */
+  --muted-foreground: #8F9CAE;  /* text-muted */
+
+  --accent: rgba(168, 197, 0, 0.15); /* accent-acid with opacity */
+  --accent-foreground: #A8C500;
+
+  --destructive: #FF2E2E;       /* accent-crimson */
+  --border: #2C3645;            /* border-hard */
+  --input: #1F2633;             /* bg-elevated */
+  --ring: #00F0FF;              /* accent-cyan */
+
+  --radius: 0.25rem;            /* SUBTLE CORNERS */
+
+  --sidebar: #151A22;           /* bg-surface */
+  --sidebar-foreground: #8F9CAE;/* text-muted */
+  --sidebar-primary: #A8C500;   /* accent-acid */
+  --sidebar-primary-foreground: #0B0E14;
+  --sidebar-accent: rgba(168, 197, 0, 0.1);
+  --sidebar-accent-foreground: #E8E4DF;
+  --sidebar-border: #2C3645;    /* border-hard */
+  --sidebar-ring: #00F0FF;      /* accent-cyan */
+
+  /* Theme gradient & glow tokens */
+  --grad-a-rgb: 11, 14, 20;
+  --grad-b-rgb: 21, 26, 34;
+  --grad-c-rgb: 31, 38, 51;
+  --glow-a: #A8C500;            /* Acid Yellow */
+  --glow-b: #00F0FF;            /* Neon Cyan */
+  --glow-c: #FF2E2E;            /* Crimson */
+
+  /* Dedicated UI Spec Variables */
+  --bg-abyss: #0B0E14;
+  --bg-surface: #151A22;
+  --bg-elevated: #1F2633;
+  --grid-line: rgba(143, 161, 184, 0.15);
+  --border-hard: #2C3645;
+  --text-bone: #E8E4DF;
+  --text-muted: #8F9CAE;
+  --accent-acid: #A8C500;
+  --accent-cyan: #00F0FF;
+  --accent-crimson: #FF2E2E;
+}
+
+[data-theme="cosmos"] {
+  /* ========================================================
+     THEME: 宇宙 — Cosmos
+     Deep space indigo / violet
+     ======================================================== */
   --background: oklch(0.08 0.015 250);
   --foreground: oklch(0.95 0.01 240);
 
@@ -98,13 +164,74 @@
   --sidebar-border: rgba(255, 255, 255, 0.05);
   --sidebar-ring: oklch(0.65 0.18 260);
 
-  /* Theme gradient & glow tokens */
   --grad-a-rgb: 99, 102, 241;
   --grad-b-rgb: 139, 92, 246;
   --grad-c-rgb: 16, 185, 129;
   --glow-a: #6366f1;
   --glow-b: #8b5cf6;
   --glow-c: #3b82f6;
+}
+
+[data-theme="blueprint-light"] {
+  /* ========================================================
+     THEME: 晴空蓝图 — Sky Blueprint
+     Light drafting paper & blue ink engineering theme
+     ======================================================== */
+  --background: #E8E4DF;        /* text-bone as background */
+  --foreground: #0B0E14;        /* bg-abyss as text */
+
+  --card: #F2EFEA;              /* engineering paper sheet */
+  --card-foreground: #0B0E14;
+  --popover: #FFFFFF;
+  --popover-foreground: #0B0E14;
+
+  --primary: #0055FF;           /* Blue Ink */
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #D4CFC9;         /* slightly darker warm gray */
+  --secondary-foreground: #0B0E14;
+
+  --muted: #E0DBD5;
+  --muted-foreground: #5F6C7E;  /* drafting ink gray */
+
+  --accent: rgba(0, 85, 255, 0.12);
+  --accent-foreground: #0055FF;
+
+  --destructive: #FF2E2E;
+  --border: #B5AEA6;            /* drafting layout border */
+  --input: #FFFFFF;
+  --ring: #0055FF;
+
+  --radius: 0.25rem;            /* SUBTLE CORNERS */
+
+  --sidebar: #E8E4DF;
+  --sidebar-foreground: #5F6C7E;
+  --sidebar-primary: #0055FF;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: rgba(0, 85, 255, 0.08);
+  --sidebar-accent-foreground: #0B0E14;
+  --sidebar-border: #B5AEA6;
+  --sidebar-ring: #0055FF;
+
+  /* Theme gradient & glow tokens */
+  --grad-a-rgb: 232, 228, 223;
+  --grad-b-rgb: 224, 219, 213;
+  --grad-c-rgb: 212, 207, 201;
+  --glow-a: #0055FF;
+  --glow-b: #00A3FF;
+  --glow-c: #FF2E2E;
+
+  /* Dedicated UI Spec Variables */
+  --bg-abyss: #E8E4DF;
+  --bg-surface: #F2EFEA;
+  --bg-elevated: #D4CFC9;
+  --grid-line: rgba(95, 108, 126, 0.15);
+  --border-hard: #B5AEA6;
+  --text-bone: #0B0E14;
+  --text-muted: #5F6C7E;
+  --accent-acid: #0055FF;
+  --accent-cyan: #00A3FF;
+  --accent-crimson: #FF2E2E;
 }
 
 /* ========================================================
@@ -136,6 +263,7 @@
   --border: rgba(255, 200, 100, 0.07);
   --input: rgba(255, 200, 100, 0.09);
   --ring: oklch(0.72 0.19 38);
+  --radius: 0.75rem;
 
   --sidebar: oklch(0.075 0.013 35);
   --sidebar-foreground: oklch(0.95 0.012 50);
@@ -183,6 +311,7 @@
   --border: rgba(100, 220, 180, 0.07);
   --input: rgba(100, 220, 180, 0.09);
   --ring: oklch(0.68 0.18 162);
+  --radius: 0.75rem;
 
   --sidebar: oklch(0.075 0.015 165);
   --sidebar-foreground: oklch(0.95 0.01 160);
@@ -230,6 +359,7 @@
   --border: rgba(240, 100, 160, 0.07);
   --input: rgba(240, 100, 160, 0.09);
   --ring: oklch(0.67 0.22 349);
+  --radius: 0.75rem;
 
   --sidebar: oklch(0.075 0.015 350);
   --sidebar-foreground: oklch(0.95 0.01 350);
@@ -277,6 +407,7 @@
   --border: rgba(80, 200, 240, 0.07);
   --input: rgba(80, 200, 240, 0.09);
   --ring: oklch(0.72 0.16 210);
+  --radius: 0.75rem;
 
   --sidebar: oklch(0.075 0.013 210);
   --sidebar-foreground: oklch(0.95 0.01 210);
@@ -309,6 +440,126 @@
     background-attachment: fixed;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
+}
+
+/* ========================================================
+   BLUEPRINT LAYOUT SPECIFICS & BACKGROUNDS
+   ======================================================== */
+
+/* Background Grid Lines */
+html[data-theme="blueprint"] body,
+html:not([data-theme]) body {
+  background-color: var(--background);
+  background-image: 
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-attachment: fixed;
+}
+
+html[data-theme="blueprint-light"] body {
+  background-color: var(--background);
+  background-image: 
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-attachment: fixed;
+}
+
+/* Fullscreen Film Grain Noise Overlay */
+html[data-theme="blueprint"]::after,
+html:not([data-theme])::after,
+html[data-theme="blueprint-light"]::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9999;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.04;
+}
+
+/* Blueprint Card Styling & Faster Transition Hover States */
+html[data-theme="blueprint"] .glass-panel,
+html:not([data-theme]) .glass-panel {
+  background: var(--card) !important;
+  backdrop-filter: none !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+  transition: all 0.1s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+html[data-theme="blueprint"] .glass-panel:hover,
+html:not([data-theme]) .glass-panel:hover {
+  border-color: var(--accent-acid) !important;
+  background-color: var(--bg-elevated) !important;
+  box-shadow: 0 0 15px rgba(168, 197, 0, 0.08) !important;
+  transform: none !important;
+}
+
+/* Hide smooth gradient background glow on blueprint cards */
+html[data-theme="blueprint"] .glow-effect::after,
+html:not([data-theme]) .glow-effect::after {
+  display: none !important;
+}
+
+/* Flashing caret arrow micro-interaction for blueprint cards */
+html[data-theme="blueprint"] .glass-panel h4::after,
+html:not([data-theme]) .glass-panel h4::after {
+  content: " >";
+  opacity: 0;
+  color: var(--accent-acid);
+  transition: opacity 0.1s ease;
+  display: inline-block;
+  margin-left: 2px;
+}
+
+html[data-theme="blueprint"] .glass-panel:hover h4::after,
+html:not([data-theme]) .glass-panel:hover h4::after {
+  opacity: 1;
+  animation: blueprint-flash 0.8s infinite steps(2);
+}
+
+/* Blueprint Light Mode Specific Card Customizations */
+html[data-theme="blueprint-light"] .glass-panel {
+  background: var(--card) !important;
+  backdrop-filter: none !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+  transition: all 0.1s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+html[data-theme="blueprint-light"] .glass-panel:hover {
+  border-color: var(--primary) !important;
+  background-color: var(--secondary) !important;
+  box-shadow: 0 0 15px rgba(0, 85, 255, 0.08) !important;
+  transform: none !important;
+}
+
+html[data-theme="blueprint-light"] .glow-effect::after {
+  display: none !important;
+}
+
+html[data-theme="blueprint-light"] .glass-panel h4::after {
+  content: " >";
+  opacity: 0;
+  color: var(--primary);
+  transition: opacity 0.1s ease;
+  display: inline-block;
+  margin-left: 2px;
+}
+
+html[data-theme="blueprint-light"] .glass-panel:hover h4::after {
+  opacity: 1;
+  animation: blueprint-flash 0.8s infinite steps(2);
+}
+
+@keyframes blueprint-flash {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
 }
 
 /* 优雅滚动条 */
@@ -360,3 +611,321 @@
   }
 }
 .active-glow { animation: pulse-glow 3s infinite; }
+
+/* ========================================================
+   LIGHT THEMES & SYSTEM OVERRIDES
+======================================================== */
+
+[data-theme$="-light"] {
+  --theme-white: #12131a;
+  --theme-black: #ffffff;
+  
+  --card: rgba(255, 255, 255, 0.45);
+  --card-bg-light: #ffffff;
+  --header-bg-light: #fafafa;
+  
+  --border: rgba(0, 0, 0, 0.08);
+  --input: rgba(0, 0, 0, 0.05);
+  
+  --sidebar-border: rgba(0, 0, 0, 0.06);
+
+  /* Remap indigo variations to mix with black in light mode to maintain contrast */
+  --color-indigo-500: var(--primary);
+  --color-indigo-600: color-mix(in oklch, var(--primary) 88%, black 12%);
+  --color-indigo-400: color-mix(in oklch, var(--primary) 85%, black 15%);
+  --color-indigo-300: color-mix(in oklch, var(--primary) 65%, black 35%);
+  --color-indigo-200: color-mix(in oklch, var(--primary) 45%, black 55%);
+  --color-indigo-100: color-mix(in oklch, var(--primary) 20%, black 80%);
+}
+
+/* Specific Light Theme Variable Overrides */
+[data-theme="cosmos-light"] {
+  --background: oklch(0.975 0.012 250);
+  --foreground: oklch(0.12 0.015 250);
+  --popover: oklch(0.985 0.008 250);
+  --popover-foreground: oklch(0.12 0.015 250);
+  --primary: oklch(0.52 0.18 260); /* Indigo - Slightly darker for contrast */
+  --primary-foreground: oklch(0.985 0.008 250);
+  --secondary: oklch(0.94 0.01 250);
+  --secondary-foreground: oklch(0.12 0.015 250);
+  --muted: oklch(0.95 0.008 250);
+  --muted-foreground: oklch(0.45 0.01 250);
+  --accent: oklch(0.52 0.18 260 / 12%);
+  --accent-foreground: oklch(0.42 0.15 260);
+  --ring: oklch(0.52 0.18 260);
+  --radius: 0.75rem;
+
+  --sidebar: oklch(0.975 0.012 250);
+  --sidebar-foreground: oklch(0.12 0.015 250);
+  --sidebar-primary: oklch(0.52 0.18 260);
+  --sidebar-primary-foreground: oklch(0.985 0.008 250);
+  --sidebar-accent: oklch(0.52 0.18 260 / 8%);
+  --sidebar-accent-foreground: oklch(0.12 0.015 250);
+
+  --grad-a-rgb: 99, 102, 241;
+  --grad-b-rgb: 139, 92, 246;
+  --grad-c-rgb: 59, 130, 246;
+  --glow-a: #6366f1;
+  --glow-b: #8b5cf6;
+  --glow-c: #3b82f6;
+}
+
+[data-theme="ember-light"] {
+  --background: oklch(0.975 0.01 35);
+  --foreground: oklch(0.12 0.012 35);
+  --popover: oklch(0.985 0.008 35);
+  --popover-foreground: oklch(0.12 0.012 35);
+  --primary: oklch(0.53 0.17 38); /* Amber/Orange - Darker for contrast */
+  --primary-foreground: oklch(0.985 0.008 35);
+  --secondary: oklch(0.94 0.01 35);
+  --secondary-foreground: oklch(0.12 0.012 35);
+  --muted: oklch(0.95 0.008 35);
+  --muted-foreground: oklch(0.45 0.01 35);
+  --accent: oklch(0.53 0.17 38 / 12%);
+  --accent-foreground: oklch(0.43 0.12 38);
+  --ring: oklch(0.53 0.17 38);
+  --radius: 0.75rem;
+
+  --sidebar: oklch(0.975 0.01 35);
+  --sidebar-foreground: oklch(0.12 0.012 35);
+  --sidebar-primary: oklch(0.53 0.17 38);
+  --sidebar-primary-foreground: oklch(0.985 0.008 35);
+  --sidebar-accent: oklch(0.53 0.17 38 / 8%);
+  --sidebar-accent-foreground: oklch(0.12 0.012 35);
+
+  --grad-a-rgb: 249, 115, 22;
+  --grad-b-rgb: 239, 68, 68;
+  --grad-c-rgb: 234, 179, 8;
+  --glow-a: #f97316;
+  --glow-b: #ef4444;
+  --glow-c: #eab308;
+}
+
+[data-theme="aurora-light"] {
+  --background: oklch(0.975 0.01 165);
+  --foreground: oklch(0.12 0.012 165);
+  --popover: oklch(0.985 0.008 165);
+  --popover-foreground: oklch(0.12 0.012 165);
+  --primary: oklch(0.49 0.16 162); /* Emerald - Darker for contrast */
+  --primary-foreground: oklch(0.985 0.008 165);
+  --secondary: oklch(0.94 0.01 165);
+  --secondary-foreground: oklch(0.12 0.012 165);
+  --muted: oklch(0.95 0.008 165);
+  --muted-foreground: oklch(0.45 0.01 165);
+  --accent: oklch(0.49 0.16 162 / 12%);
+  --accent-foreground: oklch(0.39 0.12 162);
+  --ring: oklch(0.49 0.16 162);
+  --radius: 0.75rem;
+
+  --sidebar: oklch(0.975 0.01 165);
+  --sidebar-foreground: oklch(0.12 0.012 165);
+  --sidebar-primary: oklch(0.49 0.16 162);
+  --sidebar-primary-foreground: oklch(0.985 0.008 165);
+  --sidebar-accent: oklch(0.49 0.16 162 / 8%);
+  --sidebar-accent-foreground: oklch(0.12 0.012 165);
+
+  --grad-a-rgb: 16, 185, 129;
+  --grad-b-rgb: 6, 182, 212;
+  --grad-c-rgb: 20, 184, 166;
+  --glow-a: #10b981;
+  --glow-b: #06b6d4;
+  --glow-c: #14b8a6;
+}
+
+[data-theme="sakura-light"] {
+  --background: oklch(0.975 0.01 350);
+  --foreground: oklch(0.12 0.012 350);
+  --popover: oklch(0.985 0.008 350);
+  --popover-foreground: oklch(0.12 0.012 350);
+  --primary: oklch(0.51 0.2 349); /* Pink/Rose - Darker for contrast */
+  --primary-foreground: oklch(0.985 0.008 350);
+  --secondary: oklch(0.94 0.01 350);
+  --secondary-foreground: oklch(0.12 0.012 350);
+  --muted: oklch(0.95 0.008 350);
+  --muted-foreground: oklch(0.45 0.01 350);
+  --accent: oklch(0.51 0.2 349 / 12%);
+  --accent-foreground: oklch(0.41 0.15 349);
+  --ring: oklch(0.51 0.2 349);
+  --radius: 0.75rem;
+
+  --sidebar: oklch(0.975 0.01 350);
+  --sidebar-foreground: oklch(0.12 0.012 350);
+  --sidebar-primary: oklch(0.51 0.2 349);
+  --sidebar-primary-foreground: oklch(0.985 0.008 350);
+  --sidebar-accent: oklch(0.51 0.2 349 / 8%);
+  --sidebar-accent-foreground: oklch(0.12 0.012 350);
+
+  --grad-a-rgb: 236, 72, 153;
+  --grad-b-rgb: 244, 63, 94;
+  --grad-c-rgb: 217, 70, 239;
+  --glow-a: #ec4899;
+  --glow-b: #f43f5e;
+  --glow-c: #d946ef;
+}
+
+[data-theme="arctic-light"] {
+  --background: oklch(0.975 0.01 210);
+  --foreground: oklch(0.12 0.012 210);
+  --popover: oklch(0.985 0.008 210);
+  --popover-foreground: oklch(0.12 0.012 210);
+  --primary: oklch(0.50 0.15 210); /* Cyan/Blue - Darker for contrast */
+  --primary-foreground: oklch(0.985 0.008 210);
+  --secondary: oklch(0.94 0.01 210);
+  --secondary-foreground: oklch(0.12 0.012 210);
+  --muted: oklch(0.95 0.008 210);
+  --muted-foreground: oklch(0.45 0.01 210);
+  --accent: oklch(0.50 0.15 210 / 12%);
+  --accent-foreground: oklch(0.40 0.12 210);
+  --ring: oklch(0.50 0.15 210);
+  --radius: 0.75rem;
+
+  --sidebar: oklch(0.975 0.01 210);
+  --sidebar-foreground: oklch(0.12 0.012 210);
+  --sidebar-primary: oklch(0.50 0.15 210);
+  --sidebar-primary-foreground: oklch(0.985 0.008 210);
+  --sidebar-accent: oklch(0.50 0.15 210 / 8%);
+  --sidebar-accent-foreground: oklch(0.12 0.012 210);
+
+  --grad-a-rgb: 6, 182, 212;
+  --grad-b-rgb: 14, 165, 233;
+  --grad-c-rgb: 59, 130, 246;
+  --glow-a: #06b6d4;
+  --glow-b: #0ea5e9;
+  --glow-c: #3b82f6;
+}
+
+/* Global Class Theme Adaptation for Light Themes */
+[data-theme$="-light"] .bg-\[\#12131a\]\/95 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+}
+[data-theme$="-light"] .bg-\[\#12131a\]\/30 {
+  background-color: rgba(255, 255, 255, 0.45) !important;
+}
+[data-theme$="-light"] .bg-\[\#12131a\] {
+  background-color: #ffffff !important;
+}
+[data-theme$="-light"] .bg-\[\#0a0b10\]\/60 {
+  background-color: rgba(250, 250, 250, 0.6) !important;
+}
+[data-theme$="-light"] .bg-\[\#0a0b10\] {
+  background-color: #fafafa !important;
+}
+[data-theme$="-light"] .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+[data-theme$="-light"] .border-b.border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+[data-theme$="-light"] .text-white\/95 {
+  color: rgba(18, 19, 26, 0.95) !important;
+}
+[data-theme$="-light"] .text-white\/90 {
+  color: rgba(18, 19, 26, 0.9) !important;
+}
+[data-theme$="-light"] .text-white\/80 {
+  color: rgba(18, 19, 26, 0.8) !important;
+}
+[data-theme$="-light"] .text-white\/70 {
+  color: rgba(18, 19, 26, 0.7) !important;
+}
+[data-theme$="-light"] .text-white\/60 {
+  color: rgba(18, 19, 26, 0.6) !important;
+}
+[data-theme$="-light"] .text-white\/55 {
+  color: rgba(18, 19, 26, 0.55) !important;
+}
+[data-theme$="-light"] .text-white\/50 {
+  color: rgba(18, 19, 26, 0.5) !important;
+}
+[data-theme$="-light"] .text-white\/40 {
+  color: rgba(18, 19, 26, 0.4) !important;
+}
+[data-theme$="-light"] .text-white\/30 {
+  color: rgba(18, 19, 26, 0.3) !important;
+}
+[data-theme$="-light"] .text-white\/20 {
+  color: rgba(18, 19, 26, 0.2) !important;
+}
+[data-theme$="-light"] .text-white\/15 {
+  color: rgba(18, 19, 26, 0.15) !important;
+}
+[data-theme$="-light"] .text-white\/10 {
+  color: rgba(18, 19, 26, 0.1) !important;
+}
+[data-theme$="-light"] .text-white {
+  color: #12131a !important;
+}
+[data-theme$="-light"] .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+[data-theme$="-light"] .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+[data-theme$="-light"] .bg-white\/8 {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+[data-theme$="-light"] .bg-white\/15 {
+  background-color: rgba(0, 0, 0, 0.12) !important;
+}
+[data-theme$="-light"] .hover\:bg-white\/5:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+[data-theme$="-light"] .hover\:bg-white\/10:hover {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+[data-theme$="-light"] .hover\:bg-white\/8:hover {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+[data-theme$="-light"] .data-\[state\=active\]\:bg-indigo-500[data-state="active"] {
+  background-color: var(--primary) !important;
+  color: #ffffff !important;
+}
+[data-theme$="-light"] .data-\[state\=active\]\:text-white[data-state="active"] {
+  color: #ffffff !important;
+}
+[data-theme$="-light"] button.bg-indigo-500 {
+  color: #ffffff !important;
+}
+[data-theme$="-light"] button.bg-indigo-500 * {
+  color: #ffffff !important;
+}
+[data-theme$="-light"] .bg-indigo-500 {
+  background-color: var(--primary) !important;
+  color: #ffffff !important;
+}
+[data-theme$="-light"] .hover\:bg-indigo-600:hover {
+  background-color: color-mix(in oklch, var(--primary) 88%, black 12%) !important;
+  color: #ffffff !important;
+}
+[data-theme$="-light"] .border-indigo-500\/30 {
+  border-color: color-mix(in srgb, var(--primary) 30%, transparent) !important;
+}
+[data-theme$="-light"] .hover\:border-indigo-500\/20:hover {
+  border-color: color-mix(in srgb, var(--primary) 20%, transparent) !important;
+}
+[data-theme$="-light"] .placeholder-white\/20::placeholder {
+  color: rgba(18, 19, 26, 0.3) !important;
+}
+[data-theme$="-light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12) !important;
+}
+[data-theme$="-light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25) !important;
+}
+[data-theme$="-light"] select option {
+  background-color: #ffffff !important;
+  color: #12131a !important;
+}
+[data-theme$="-light"] select {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  color: #12131a !important;
+}
+[data-theme$="-light"] .glass-panel {
+  background: rgba(255, 255, 255, 0.5) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.06) !important;
+}
+[data-theme$="-light"] .glass-panel:hover {
+  border-color: color-mix(in srgb, var(--primary) 30%, transparent) !important;
+  box-shadow: 0 8px 32px 0 color-mix(in srgb, var(--primary) 12%, transparent) !important;
+}

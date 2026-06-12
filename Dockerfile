@@ -56,7 +56,7 @@ EXPOSE 3000
 
 # 容器启动时：
 # 1. 动态解析并导出 DATABASE_URL，确保支持运行时修改 DATA_DIR，并提前创建数据库目录以防 Prisma 报错
-# 2. 自动执行数据库迁移确保表结构为最新状态 (prisma migrate deploy)
+# 2. 执行数据库同步：优先使用 migrate deploy；若报 P3005（有数据但无迁移记录）则降级使用 db push 强制同步；若均失败则警告并继续启动，以防容器崩溃
 # 3. 运行编译后的 seed.js (node prisma/seed.js) 导入种子数据 (如果不存在)
 # 4. 使用 node server.js 启动 Next.js Standalone 服务 (省去 next cli 开销)
-CMD ["sh", "-c", "export DATABASE_URL=\"file:${DATA_DIR}/database/database.db\" && mkdir -p \"${DATA_DIR}/database\" && prisma migrate deploy && node prisma/seed.js && node server.js"]
+CMD ["sh", "-c", "export DATABASE_URL=\"file:${DATA_DIR}/database/database.db\" && mkdir -p \"${DATA_DIR}/database\" && (prisma migrate deploy || prisma db push --skip-generate || echo \"Warning: Database schema sync skipped\") && node prisma/seed.js && node server.js"]

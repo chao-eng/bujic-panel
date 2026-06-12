@@ -18,7 +18,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: '布吉岛导航 - 完美的网站导航与书签管理',
+  title: '布吉岛导航',
   description: '基于 Next.js 与 SQLite 重构的高性能、极速响应、优雅拟态导航面板',
 };
 

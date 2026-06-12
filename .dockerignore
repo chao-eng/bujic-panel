@@ -1,0 +1,8 @@
+.git
+.agents
+.claude
+.DS_Store
+app/node_modules
+app/.next
+app/data
+app/tsconfig.tsbuildinfo

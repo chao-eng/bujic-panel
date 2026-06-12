@@ -1,0 +1,186 @@
+# 🏝️ 布吉岛导航 (Bujic Panel)
+
+[![Next.js](https://img.shields.io/badge/Next.js-16.2.9-black?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.0.0-blue?style=flat-square&logo=react)](https://react.dev/)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-38bdf8?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
+[![Prisma](https://img.shields.io/badge/Prisma-6.19.3-0c344b?style=flat-square&logo=prisma)](https://www.prisma.io/)
+[![SQLite](https://img.shields.io/badge/SQLite-3-003b57?style=flat-square&logo=sqlite)](https://www.sqlite.org/)
+
+**布吉岛导航 (Bujic Panel)** 是一款基于 Next.js Fullstack (App Router) + TailwindCSS v4 + SQLite 开发的高颜值、自托管、多用户的网站导航与书签管理系统。它兼具极致的视觉设计和流畅的交互体验，支持深度自定义，非常适合个人服务器、私有云和局域网部署。
+
+---
+
+## ✨ 核心特性
+
+- 🎨 **高颜值视觉设计**
+  - 内置 12 套精心雕琢的配色主题（如“午夜蓝图”、“深空宇宙”、“樱花深色”、“暖阳浅色”等），支持深色与浅色模式。
+  - 采用现代磨砂玻璃质感（Glassmorphism）、微交互动画和响应式网格布局。
+- 🔄 **双展示模式**
+  - **网站模式**：经典的卡片式导航，适合高频使用的常用工具与网站。
+  - **网页模式**：带有详细描述、长文本备注的信息流式列表，适合深度网页书签管理。
+- 🖱️ **无缝拖拽排序**
+  - 基于 `@dnd-kit` 实现，用户可直接在页面上拖拽书签卡片进行实时排序，操作结果自动保存至后台。
+- 🔍 **搜索引擎与智能检索**
+  - 支持快捷搜索框，可自定义搜索引擎，并支持对当前页面书签进行秒级的本地关键字模糊过滤。
+- 🕷️ **一键抓取元数据**
+  - 添加或编辑书签时，输入 URL 即可在后端一键抓取目标网页的标题（Title）和 Favicon 图标，省去手动填写的繁琐。
+- 📦 **数据备份与恢复**
+  - 支持一键导出完整的 JSON 格式备份，并支持从备份文件重新导入，方便数据迁移与跨设备备份。
+- 👥 **多用户与权限管理**
+  - 内置精细的用户权限系统（管理员/普通用户），提供专门的管理后台、用户增删改查以及状态控制。
+  - 支持个人中心修改昵称、邮箱、头像以及密码。
+- 🐳 **容器化与自托管友好**
+  - 基于 SQLite 嵌入式数据库，免去复杂的外部数据库部署。
+  - 核心存储路径由 `DATA_DIR` 环境变量统一控制，数据库文件与用户上传附件（头像、壁纸、图标）全部归口存放，极易进行 Docker 容器挂载与备份。
+
+---
+
+## 🛠️ 技术栈
+
+- **前端框架**：[Next.js 16](https://nextjs.org) (App Router) & [React 19](https://react.dev)
+- **样式方案**：[TailwindCSS v4](https://tailwindcss.com) & PostCSS
+- **图标组件**：[Lucide React](https://lucide.dev)
+- **拖拽库**：[dnd-kit](https://dnd-kit.com)
+- **ORM / 数据库**：[Prisma](https://www.prisma.io) & [SQLite](https://sqlite.org)
+- **权限认证**：JWT (基于 `jose` 库)
+
+---
+
+## 🚀 快速开始
+
+### 1. 环境准备
+确保您的系统安装了：
+- [Node.js](https://nodejs.org/) (推荐 v18+ 或 v20+)
+- [pnpm](https://pnpm.io/) (推荐) 或 npm / yarn
+
+### 2. 获取代码与安装依赖
+首先进入 `app` 目录并安装依赖：
+```bash
+cd app
+pnpm install
+```
+
+### 3. 配置环境变量
+在 `app` 目录下创建或修改 `.env` 文件，用于指定数据存放路径：
+```env
+DATA_DIR="data"
+```
+> [!NOTE]
+> `DATA_DIR` 路径可以是相对路径或绝对路径。系统会自动在其下创建 `database` 文件夹存放 SQLite 数据库文件，以及 `uploads` 文件夹存放上传的文件。如果不指定，默认使用 `app/data`。
+
+### 4. 数据库初始化 (Migrate & Seed)
+执行数据库推送与初始数据灌入脚本：
+```bash
+pnpm db:setup
+```
+> 该命令会运行 `prisma db push` 同步数据库结构，并调用 `prisma/seed.ts` 生成默认数据。
+>
+> 默认创建的管理员账号为：
+> - **用户名**：`admin`
+> - **密码**：`admin`
+
+### 5. 启动开发服务器
+```bash
+pnpm dev
+```
+启动后，可在浏览器访问：[http://localhost:3000](http://localhost:3000)
+
+### 6. 构建与生产运行
+```bash
+pnpm build
+pnpm start
+```
+
+---
+
+## 🐳 Docker 部署指南 (推荐)
+
+由于项目数据和上传文件全部归集在 `DATA_DIR` 中，非常适合制作轻量级 Docker 镜像进行自托管部署。
+
+### 1. 编写 Dockerfile (参考)
+在项目根目录 `bujic-Panel` 下创建 `Dockerfile`：
+```dockerfile
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY app/package.json app/pnpm-lock.yaml ./
+RUN npm install -g pnpm && pnpm install --frozen-lockfile
+COPY app/ .
+RUN npx prisma generate
+RUN pnpm build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV DATA_DIR=/app/data
+
+RUN npm install -g pnpm
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml ./
+RUN pnpm install --prod --frozen-lockfile
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/scripts ./scripts
+
+EXPOSE 3000
+
+# 启动时自动检查并更新数据库结构，然后启动 Next.js 生产服务
+CMD ["sh", "-c", "pnpm db:migrate && pnpm start"]
+```
+
+### 2. 部署运行
+构建镜像并挂载本地卷（确保数据持久化）：
+```bash
+# 构建镜像
+docker build -t bujic-panel .
+
+# 运行容器 (挂载数据卷到宿主机的 /my/local/data)
+docker run -d \
+  -p 3000:3000 \
+  -v /my/local/data:/app/data \
+  --name bujic-panel \
+  bujic-panel
+```
+
+---
+
+## 📁 项目目录结构
+
+```text
+bujic-Panel/
+├── app/                      # 核心应用目录
+│   ├── prisma/               # Prisma schema 与种子脚本
+│   │   ├── schema.prisma     # 数据库结构定义
+│   │   └── seed.ts           # 默认数据生成脚本
+│   ├── scripts/              # 数据库辅助脚本 (代理 Prisma CLI)
+│   ├── src/
+│   │   ├── actions/          # Next.js Server Actions (逻辑操作API)
+│   │   ├── app/              # Next.js App Router 页面及 API 路由
+│   │   │   ├── api/          # 接口：一键爬取 Favicon、文件上传等
+│   │   │   ├── login/        # 登录页面
+│   │   │   ├── uploads/      # 安全文件读取代理 (防御目录穿越)
+│   │   │   └── page.tsx      # 主导航大盘页面
+│   │   ├── components/       # 可重用 UI 组件 (主题设置、分组管理、书签网格)
+│   │   └── lib/              # 工具库 (数据库连接、JWT认证、多语言、主题数据)
+│   ├── package.json          # 项目依赖与运行脚本
+│   └── tailwind.config.ts    # 样式配置
+└── README.md                 # 项目自述文件 (本文件)
+```
+
+---
+
+## 🔒 安全与优化
+
+1. **目录穿越防御**：`/uploads` 路由经过严苛的 `path.resolve` 与 `startsWith` 校验，杜绝通过相对路径 `../` 读取宿主机系统文件的风险。
+2. **SQLite 并发优化 (WAL)**：在 `src/lib/db.ts` 初始化数据库连接时，自动执行：
+   - `PRAGMA journal_mode = WAL;`（启用预写日志，提高高并发读写性能）。
+   - `PRAGMA synchronous = NORMAL;`（平衡安全性与物理写盘开销）。
+   - `PRAGMA busy_timeout = 5000;`（防止 SQLite 多并发写入时频繁抛出 locked 错误）。
+3. **文件上传过滤**：限定文件上传大小最大为 10MB，上传内容基于文件 MD5 散列命名，避免文件名重复冲突。
+
+---
+
+## 📄 开源协议
+
+本项目采用 MIT 协议开源。

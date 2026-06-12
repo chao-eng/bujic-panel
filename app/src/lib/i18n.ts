@@ -7,7 +7,7 @@ export const dictionaries = {
     username: '用户名',
     password: '密码',
     loginTitle: '布吉岛导航',
-    loginSubtitle: '完美的网站导航 与 网页书签管理系统',
+    loginSubtitle: '网站导航 与 网页书签管理系统',
     usernamePlaceholder: '请输入用户名',
     passwordPlaceholder: '请输入密码',
     loginFailed: '登录失败，请检查账号和密码',

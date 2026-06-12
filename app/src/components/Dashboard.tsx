@@ -7,6 +7,7 @@ import IconGrid from './IconGrid';
 import EditIconModal from './Modals/EditIconModal';
 import GroupManageModal from './Modals/GroupManageModal';
 import SettingsModal from './Modals/SettingsModal';
+import ConfirmDeleteModal from './Modals/ConfirmDeleteModal';
 import {
   saveItemIconSortAction,
   deleteItemIconsAction,
@@ -82,6 +83,8 @@ export default function Dashboard({
   const [editingIcon, setEditingIcon] = useState<ItemIconType | null>(null);
   const [isGroupManageOpen, setIsGroupManageOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  const [deletingIcon, setDeletingIcon] = useState<ItemIconType | null>(null);
   const [importMsg, setImportMsg] = useState('');
   const [importError, setImportError] = useState(false);
 
@@ -149,7 +152,17 @@ export default function Dashboard({
     setIsEditIconOpen(true);
   };
 
-  const handleDeleteIcon = async (id: number) => {
+  const handleDeleteIcon = (id: number) => {
+    const icon = icons.find((i) => i.id === id);
+    if (icon) {
+      setDeletingIcon(icon);
+      setIsConfirmDeleteOpen(true);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingIcon) return;
+    const id = deletingIcon.id;
     setIcons(icons.filter((i) => i.id !== id));
     try {
       await deleteItemIconsAction([id]);
@@ -438,6 +451,17 @@ export default function Dashboard({
         onClose={() => setIsSettingsOpen(false)}
         currentUser={currentUser}
         onRefreshUser={setCurrentUser}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={isConfirmDeleteOpen}
+        onClose={() => {
+          setIsConfirmDeleteOpen(false);
+          setDeletingIcon(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title={t.deleteBookmark}
+        description={deletingIcon ? `${t.confirmDelete} (${deletingIcon.title})` : t.confirmDelete}
       />
     </div>
   );

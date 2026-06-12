@@ -82,6 +82,8 @@ export default function Dashboard({
   const [editingIcon, setEditingIcon] = useState<ItemIconType | null>(null);
   const [isGroupManageOpen, setIsGroupManageOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [importMsg, setImportMsg] = useState('');
+  const [importError, setImportError] = useState(false);
 
   const [activeGroupScroll, setActiveGroupScroll] = useState<number | null>(null);
 
@@ -148,13 +150,11 @@ export default function Dashboard({
   };
 
   const handleDeleteIcon = async (id: number) => {
-    if (confirm(t.confirmDelete)) {
-      setIcons(icons.filter((i) => i.id !== id));
-      try {
-        await deleteItemIconsAction([id]);
-      } catch (e) {
-        console.error('删除书签失败:', e);
-      }
+    setIcons(icons.filter((i) => i.id !== id));
+    try {
+      await deleteItemIconsAction([id]);
+    } catch (e) {
+      console.error('删除书签失败:', e);
     }
   };
 
@@ -200,8 +200,8 @@ export default function Dashboard({
       try {
         const config = JSON.parse(event.target?.result as string);
         if (config.groups && config.icons) {
-          // 循环创建分组并映射 ID，然后批量插入图标
-          alert('开始导入配置数据，请稍候...');
+          setImportError(false);
+          setImportMsg(t.importingData);
           for (const g of config.groups) {
             const createdGroup = await editGroupAction({
               title: g.title,
@@ -209,7 +209,6 @@ export default function Dashboard({
               groupType: g.groupType,
             });
 
-            // 过滤该分组下的书签
             const subIcons = config.icons.filter((i: any) => i.itemIconGroupId === g.id);
             if (subIcons.length > 0) {
               const itemsToCreate = subIcons.map((i: any) => ({
@@ -222,13 +221,15 @@ export default function Dashboard({
               await addMultipleItemIconsAction(itemsToCreate);
             }
           }
-          alert('数据备份导入成功！');
-          window.location.reload();
+          setImportMsg(t.importSuccess);
+          setTimeout(() => window.location.reload(), 1500);
         } else {
-          alert('非法的备份 JSON 格式！');
+          setImportError(true);
+          setImportMsg(t.importInvalidFormat);
         }
       } catch (err) {
-        alert('文件解析失败，请检查是否是有效的 JSON 格式');
+        setImportError(true);
+        setImportMsg(t.importParseFailed);
       }
     };
     reader.readAsText(file);
@@ -245,6 +246,13 @@ export default function Dashboard({
         className="hidden"
       />
       <button id="dashboard-export-action" onClick={handleExportConfig} className="hidden" />
+
+      {/* 导入进度提示 toast */}
+      {importMsg && (
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-xl text-xs font-semibold shadow-xl border ${importError ? 'bg-red-900/90 border-red-500/30 text-red-300' : 'bg-[#12131a]/95 border-white/10 text-white/90'} backdrop-blur-xl`}>
+          {importMsg}
+        </div>
+      )}
 
       {/* 顶部导航控制条 */}
       <header className="w-full border-b border-white/5 bg-[#0a0b10]/60 backdrop-blur-xl sticky top-0 z-40 px-6 py-4 flex items-center justify-between">

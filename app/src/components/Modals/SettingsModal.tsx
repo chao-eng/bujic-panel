@@ -19,7 +19,9 @@ import {
   updateUserAction,
   deleteUsersAction,
 } from '../../actions/userActions';
-import { Loader2, Plus, Edit2, Trash2, Shield, User, Lock, Download, Upload, Info } from 'lucide-react';
+import { Loader2, Plus, Edit2, Trash2, Shield, User, Lock, Download, Upload, Info, Palette } from 'lucide-react';
+import { THEMES, ThemeId } from '../../lib/themes';
+import { useTheme } from '../I18nProvider';
 
 interface UserType {
   id: number;
@@ -53,6 +55,7 @@ export default function SettingsModal({
   onRefreshUser,
 }: SettingsModalProps) {
   const { t } = useTranslation();
+  const { theme, setTheme } = useTheme();
   const [isPending, startTransition] = useTransition();
 
   // 1. 个人中心状态
@@ -74,6 +77,7 @@ export default function SettingsModal({
   const [isUserManagePending, setIsUserManagePending] = useState(false);
   const [adminMsg, setAdminMsg] = useState('');
   const [adminError, setAdminError] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
 
   // 新增/编辑用户状态
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
@@ -98,18 +102,16 @@ export default function SettingsModal({
     setPasswordMsg('');
 
     if (isOpen) {
-      // 获取关于页面配置
       fetch('/api/openness/about')
         .then((res) => res.json())
         .then((data) => {
           if (data.code === 0) {
-            setDisclaimer(data.data.disclaimer || '暂无免责声明');
-            setAboutText(data.data.about || '布吉岛导航是一款完全自托管的网站与书签管理工具。');
+            setDisclaimer(data.data.disclaimer || t.noDisclaimer);
+            setAboutText(data.data.about || t.defaultAboutText);
           }
         })
         .catch(() => {});
 
-      // 如果是管理员，获取用户列表
       if (currentUser.role === 1) {
         loadUsersList();
       }
@@ -128,7 +130,6 @@ export default function SettingsModal({
     }
   };
 
-  // 个人资料修改
   const handleUpdateProfile = (e: React.FormEvent) => {
     e.preventDefault();
     setProfileMsg('');
@@ -147,7 +148,6 @@ export default function SettingsModal({
     });
   };
 
-  // 头像上传
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -175,7 +175,6 @@ export default function SettingsModal({
     }
   };
 
-  // 修改密码
   const handleUpdatePassword = (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordMsg('');
@@ -183,7 +182,7 @@ export default function SettingsModal({
 
     if (newPassword !== confirmPassword) {
       setPasswordError(true);
-      setPasswordMsg('两次输入的新密码不一致');
+      setPasswordMsg(t.passwordMismatch);
       return;
     }
 
@@ -191,18 +190,17 @@ export default function SettingsModal({
       const res = await updatePasswordAction({ oldPassword, newPassword });
       if (res.success) {
         setPasswordError(false);
-        setPasswordMsg('密码修改成功，请重新登录');
+        setPasswordMsg(t.passwordChangedRelogin);
         setTimeout(() => {
           window.location.href = '/login';
         }, 1500);
       } else {
         setPasswordError(true);
-        setPasswordMsg(res.message || '修改失败');
+        setPasswordMsg(res.message || t.changeFailed);
       }
     });
   };
 
-  // 启动管理员添加用户
   const handleStartAddUser = () => {
     setEditingUser(null);
     setManageUsername('');
@@ -215,7 +213,6 @@ export default function SettingsModal({
     setIsAddUserOpen(true);
   };
 
-  // 启动管理员编辑用户
   const handleStartEditUser = (u: UserType) => {
     setEditingUser(u);
     setManageUsername(u.username);
@@ -228,14 +225,12 @@ export default function SettingsModal({
     setIsAddUserOpen(true);
   };
 
-  // 提交管理员用户管理表单
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setAdminMsg('');
     setAdminError(false);
 
     if (editingUser) {
-      // 编辑
       const res = await updateUserAction({
         id: editingUser.id,
         name: manageName,
@@ -249,10 +244,9 @@ export default function SettingsModal({
         loadUsersList();
       } else {
         setAdminError(true);
-        setAdminMsg(res.message || '更新失败');
+        setAdminMsg(res.message || t.updateFailed);
       }
     } else {
-      // 新建
       const res = await createUserAction({
         username: manageUsername,
         password: managePassword || undefined,
@@ -266,30 +260,25 @@ export default function SettingsModal({
         loadUsersList();
       } else {
         setAdminError(true);
-        setAdminMsg(res.message || '添加失败');
+        setAdminMsg(res.message || t.addFailed);
       }
     }
   };
 
-  // 管理员删除用户
   const handleDeleteUser = async (id: number) => {
-    if (confirm(t.confirmDelete)) {
-      const res = await deleteUsersAction([id]);
-      if (res.success) {
-        loadUsersList();
-      } else {
-        alert(res.message);
-      }
+    const res = await deleteUsersAction([id]);
+    if (res.success) {
+      setDeletingUserId(null);
+      loadUsersList();
+    } else {
+      setDeletingUserId(null);
+      setAdminError(true);
+      setAdminMsg(res.message || t.changeFailed);
     }
   };
 
-  // 导出配置为 JSON 文件
   const handleExportConfig = async () => {
     try {
-      const res = await fetch('/api/export-config-fake', { method: 'GET' }); // 本地虚拟
-      // 实际上我们可以通过 Server Action 或者是直接请求在客户端拼装 JSON。
-      // 既然已经加载了 groups 和 icons，直接在客户端把数据导出来即可！
-      // 我们可以从 props 或者直接在 Dashboard 中调用导出。为了方便，我们在 Dashboard 中导出。
       const exportBtn = document.getElementById('dashboard-export-action');
       if (exportBtn) {
         exportBtn.click();
@@ -297,7 +286,6 @@ export default function SettingsModal({
     } catch (e) {}
   };
 
-  // 触发 JSON 文件导入
   const handleImportConfig = () => {
     const importInput = document.getElementById('dashboard-import-input');
     if (importInput) {
@@ -331,6 +319,10 @@ export default function SettingsModal({
                   <span>{t.userManagement}</span>
                 </TabsTrigger>
               )}
+              <TabsTrigger value="appearance" className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg data-[state=active]:bg-indigo-500 data-[state=active]:text-white text-xs cursor-pointer shrink-0">
+                <Palette size={13} />
+                <span>{t.styleSettings}</span>
+              </TabsTrigger>
               <TabsTrigger value="backup" className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg data-[state=active]:bg-indigo-500 data-[state=active]:text-white text-xs cursor-pointer shrink-0">
                 <Download size={13} />
                 <span>{t.importExport}</span>
@@ -349,7 +341,6 @@ export default function SettingsModal({
                     {profileMsg}
                   </div>
                 )}
-                {/* 头像 */}
                 <div className="flex items-center gap-4">
                   <div className="relative w-16 h-16 rounded-full bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
                     {headImage ? (
@@ -373,7 +364,7 @@ export default function SettingsModal({
                       htmlFor="avatar-upload-file"
                       className="px-3.5 py-1.5 bg-white/5 border border-white/5 hover:bg-white/10 active:scale-95 text-xs font-medium rounded-xl transition cursor-pointer select-none text-white/80"
                     >
-                      修改头像
+                      {t.changeAvatar}
                     </label>
                   </div>
                 </div>
@@ -443,7 +434,7 @@ export default function SettingsModal({
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-white/60 text-xs">确认密码</Label>
+                    <Label className="text-white/60 text-xs">{t.confirmPasswordLabel}</Label>
                     <Input
                       type="password"
                       required
@@ -471,7 +462,6 @@ export default function SettingsModal({
             {currentUser.role === 1 && (
               <TabsContent value="users" className="space-y-4">
                 {isAddUserOpen ? (
-                  /* 新增编辑用户表单 */
                   <form onSubmit={handleSaveUser} className="space-y-3 p-3 bg-white/5 border border-white/5 rounded-xl">
                     <h4 className="text-xs font-bold text-white mb-2">
                       {editingUser ? t.editUser : t.addUser}
@@ -485,7 +475,7 @@ export default function SettingsModal({
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <Label className="text-white/50 text-[10px] uppercase">用户名</Label>
+                        <Label className="text-white/50 text-[10px] uppercase">{t.username}</Label>
                         <Input
                           type="text"
                           required
@@ -496,10 +486,10 @@ export default function SettingsModal({
                         />
                       </div>
                       <div>
-                        <Label className="text-white/50 text-[10px] uppercase">密码</Label>
+                        <Label className="text-white/50 text-[10px] uppercase">{t.password}</Label>
                         <Input
                           type="password"
-                          placeholder={editingUser ? '留空则不修改' : '默认 123456'}
+                          placeholder={editingUser ? t.leaveEmptyToKeep : t.defaultPassword}
                           value={managePassword}
                           onChange={(e) => setManagePassword(e.target.value)}
                           className="bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl h-8 text-xs placeholder-white/20"
@@ -509,7 +499,7 @@ export default function SettingsModal({
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <Label className="text-white/50 text-[10px] uppercase">姓名/昵称</Label>
+                        <Label className="text-white/50 text-[10px] uppercase">{t.name}</Label>
                         <Input
                           type="text"
                           value={manageName}
@@ -518,7 +508,7 @@ export default function SettingsModal({
                         />
                       </div>
                       <div>
-                        <Label className="text-white/50 text-[10px] uppercase">邮箱</Label>
+                        <Label className="text-white/50 text-[10px] uppercase">{t.email}</Label>
                         <Input
                           type="email"
                           value={manageMail}
@@ -571,10 +561,9 @@ export default function SettingsModal({
                     </div>
                   </form>
                 ) : (
-                  /* 用户表格展示 */
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <h4 className="text-xs font-bold text-white/50">当前注册用户</h4>
+                      <h4 className="text-xs font-bold text-white/50">{t.registeredUsers}</h4>
                       <button
                         onClick={handleStartAddUser}
                         className="flex items-center gap-1 px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 rounded-xl text-xs font-semibold text-white transition active:scale-95 shadow-md shadow-indigo-500/10 cursor-pointer"
@@ -583,6 +572,12 @@ export default function SettingsModal({
                         <span>{t.addUser}</span>
                       </button>
                     </div>
+
+                    {adminMsg && (
+                      <div className={`text-xs font-semibold px-3 py-2 rounded-lg ${adminError ? 'bg-red-500/10 border border-red-500/20 text-red-400' : 'bg-green-500/10 border border-green-500/20 text-green-400'}`}>
+                        {adminMsg}
+                      </div>
+                    )}
 
                     {isUserManagePending ? (
                       <div className="flex items-center justify-center py-12 text-white/40">
@@ -593,11 +588,11 @@ export default function SettingsModal({
                         <table className="w-full text-left text-xs border-collapse">
                           <thead>
                             <tr className="bg-white/5 text-white/60 border-b border-white/5 font-semibold">
-                              <th className="p-3">账号</th>
-                              <th className="p-3">昵称</th>
-                              <th className="p-3">角色</th>
-                              <th className="p-3">状态</th>
-                              <th className="p-3 text-right">操作</th>
+                              <th className="p-3">{t.accountCol}</th>
+                              <th className="p-3">{t.nicknameCol}</th>
+                              <th className="p-3">{t.role}</th>
+                              <th className="p-3">{t.status}</th>
+                              <th className="p-3 text-right">{t.actions}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -611,20 +606,39 @@ export default function SettingsModal({
                                     {u.status === 1 ? t.active : t.inactive}
                                   </span>
                                 </td>
-                                <td className="p-3 text-right flex items-center justify-end gap-1.5">
-                                  <button
-                                    onClick={() => handleStartEditUser(u)}
-                                    className="p-1 rounded bg-white/5 border border-white/5 hover:bg-indigo-500/20 hover:text-indigo-300 transition cursor-pointer"
-                                  >
-                                    <Edit2 size={11} />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteUser(u.id)}
-                                    disabled={u.id === currentUser.id}
-                                    className="p-1 rounded bg-white/5 border border-white/5 hover:bg-red-500/20 hover:text-red-400 transition cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
-                                  >
-                                    <Trash2 size={11} />
-                                  </button>
+                                <td className="p-3 text-right">
+                                  {deletingUserId === u.id ? (
+                                    <span className="flex items-center justify-end gap-1">
+                                      <button
+                                        onClick={() => handleDeleteUser(u.id)}
+                                        className="px-2 py-0.5 rounded text-[10px] bg-red-500/20 text-red-400 hover:bg-red-500/30 transition cursor-pointer"
+                                      >
+                                        {t.delete}
+                                      </button>
+                                      <button
+                                        onClick={() => setDeletingUserId(null)}
+                                        className="px-2 py-0.5 rounded text-[10px] bg-white/5 text-white/50 hover:bg-white/10 transition cursor-pointer"
+                                      >
+                                        {t.cancel}
+                                      </button>
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center justify-end gap-1.5">
+                                      <button
+                                        onClick={() => handleStartEditUser(u)}
+                                        className="p-1 rounded bg-white/5 border border-white/5 hover:bg-indigo-500/20 hover:text-indigo-300 transition cursor-pointer"
+                                      >
+                                        <Edit2 size={11} />
+                                      </button>
+                                      <button
+                                        onClick={() => setDeletingUserId(u.id)}
+                                        disabled={u.id === currentUser.id}
+                                        className="p-1 rounded bg-white/5 border border-white/5 hover:bg-red-500/20 hover:text-red-400 transition cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                                      >
+                                        <Trash2 size={11} />
+                                      </button>
+                                    </span>
+                                  )}
                                 </td>
                               </tr>
                             ))}
@@ -637,6 +651,39 @@ export default function SettingsModal({
               </TabsContent>
             )}
 
+            {/* 外观主题 */}
+            <TabsContent value="appearance" className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {THEMES.map((th) => {
+                  const isActive = theme === th.id;
+                  return (
+                    <button
+                      key={th.id}
+                      type="button"
+                      onClick={() => setTheme(th.id as ThemeId)}
+                      className={`relative flex flex-col items-start gap-2 p-3 rounded-xl border transition cursor-pointer ${
+                        isActive
+                          ? 'border-[var(--primary)] bg-[var(--primary)]/10 ring-1 ring-[var(--primary)]/40'
+                          : 'border-white/5 bg-white/5 hover:bg-white/10'
+                      }`}
+                    >
+                      <div
+                        className="w-full h-10 rounded-lg"
+                        style={{ background: `linear-gradient(135deg, ${th.primary} 0%, ${th.bg} 100%)` }}
+                      />
+                      <div className="text-left">
+                        <p className="text-xs font-semibold text-white/90">{th.label}</p>
+                        <p className="text-[10px] text-white/40">{th.description}</p>
+                      </div>
+                      {isActive && (
+                        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[var(--primary)]" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </TabsContent>
+
             {/* 4. 导入导出 */}
             <TabsContent value="backup" className="space-y-4">
               <div className="p-4 bg-white/5 border border-white/5 rounded-xl space-y-4">
@@ -645,8 +692,8 @@ export default function SettingsModal({
                     <Download size={20} />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-white/90">数据配置备份与恢复</h4>
-                    <p className="text-[10px] text-white/30 mt-0.5">您可以导出或导入 JSON 文件来保存/恢复书签配置。</p>
+                    <h4 className="text-xs font-bold text-white/90">{t.backupTitle}</h4>
+                    <p className="text-[10px] text-white/30 mt-0.5">{t.backupDesc}</p>
                   </div>
                 </div>
 
@@ -656,14 +703,14 @@ export default function SettingsModal({
                     className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 active:scale-98 transition text-xs font-semibold text-white/80 cursor-pointer"
                   >
                     <Download size={14} />
-                    <span>导出为 JSON 备份</span>
+                    <span>{t.exportJson}</span>
                   </button>
                   <button
                     onClick={handleImportConfig}
                     className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-500 hover:bg-indigo-600 active:scale-98 transition text-xs font-semibold text-white shadow-md shadow-indigo-500/10 cursor-pointer"
                   >
                     <Upload size={14} />
-                    <span>导入 JSON 备份</span>
+                    <span>{t.importJson}</span>
                   </button>
                 </div>
               </div>
@@ -673,12 +720,12 @@ export default function SettingsModal({
             <TabsContent value="about" className="space-y-4">
               <div className="p-4 bg-white/5 border border-white/5 rounded-xl space-y-3 text-xs leading-relaxed text-white/70">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-heading font-extrabold text-base text-indigo-400">布吉岛导航</span>
+                  <span className="font-heading font-extrabold text-base text-indigo-400">{t.loginTitle}</span>
                   <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 rounded-full text-[9px] font-mono">v2.0.4 - Next.js Migration</span>
                 </div>
                 <p>{aboutText}</p>
                 <div className="border-t border-white/5 pt-3 mt-3">
-                  <h5 className="font-semibold text-white/50 text-[10px] uppercase tracking-wider mb-1">免责声明</h5>
+                  <h5 className="font-semibold text-white/50 text-[10px] uppercase tracking-wider mb-1">{t.disclaimerTitle}</h5>
                   <p className="text-[10px] text-white/30 leading-normal">{disclaimer}</p>
                 </div>
               </div>

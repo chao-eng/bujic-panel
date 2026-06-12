@@ -12,7 +12,7 @@ import {
 } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Plus, Edit2, Trash2, Folder, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Folder, Loader2, Check, X } from 'lucide-react';
 
 interface GroupType {
   id: number;
@@ -44,6 +44,7 @@ export default function GroupManageModal({
   const [icon, setIcon] = useState('lucide:folder');
   const [groupType, setGroupType] = useState('website');
   const [errorMsg, setErrorMsg] = useState('');
+  const [deletingGroupId, setDeletingGroupId] = useState<number | null>(null);
 
   const handleStartAdd = () => {
     setSelectedGroup(null);
@@ -91,16 +92,19 @@ export default function GroupManageModal({
   };
 
   const handleDelete = (id: number) => {
-    if (confirm(t.confirmDelete)) {
-      startTransition(async () => {
-        const res = await deleteGroupsAction([id]);
-        if (res.success) {
-          onRefresh();
-        } else {
-          setErrorMsg(res.message || t.saveFailed);
-        }
-      });
-    }
+    setDeletingGroupId(id);
+  };
+
+  const handleConfirmDelete = (id: number) => {
+    setDeletingGroupId(null);
+    startTransition(async () => {
+      const res = await deleteGroupsAction([id]);
+      if (res.success) {
+        onRefresh();
+      } else {
+        setErrorMsg(res.message || t.saveFailed);
+      }
+    });
   };
 
   return (
@@ -210,19 +214,39 @@ export default function GroupManageModal({
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => handleStartEdit(group)}
-                    className="p-2 rounded-lg border border-white/5 bg-white/5 hover:bg-indigo-500/20 hover:text-indigo-300 transition text-white/50 cursor-pointer"
-                  >
-                    <Edit2 size={13} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(group.id)}
-                    disabled={isPending}
-                    className="p-2 rounded-lg border border-white/5 bg-white/5 hover:bg-red-500/20 hover:text-red-400 transition text-white/50 cursor-pointer disabled:opacity-40"
-                  >
-                    <Trash2 size={13} />
-                  </button>
+                  {deletingGroupId === group.id ? (
+                    <>
+                      <button
+                        onClick={() => setDeletingGroupId(null)}
+                        className="px-2 py-1 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 text-white/50 text-[10px] transition cursor-pointer"
+                      >
+                        {t.cancel}
+                      </button>
+                      <button
+                        onClick={() => handleConfirmDelete(group.id)}
+                        disabled={isPending}
+                        className="px-2 py-1 rounded-lg bg-red-500/20 border border-red-500/20 hover:bg-red-500/30 text-red-400 text-[10px] font-medium transition cursor-pointer disabled:opacity-40"
+                      >
+                        {t.delete}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleStartEdit(group)}
+                        className="p-2 rounded-lg border border-white/5 bg-white/5 hover:bg-indigo-500/20 hover:text-indigo-300 transition text-white/50 cursor-pointer"
+                      >
+                        <Edit2 size={13} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(group.id)}
+                        disabled={isPending}
+                        className="p-2 rounded-lg border border-white/5 bg-white/5 hover:bg-red-500/20 hover:text-red-400 transition text-white/50 cursor-pointer disabled:opacity-40"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ))}

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import React, { useState, useTransition, useEffect } from 'react';
 import { useTranslation } from '../I18nProvider';
-import { editGroupAction, deleteGroupsAction } from '../../actions/groupActions';
+import { editGroupAction, deleteGroupsAction, saveGroupSortAction } from '../../actions/groupActions';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,21 @@ import {
 } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Plus, Edit2, Trash2, Folder, Loader2, Check, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Folder, Loader2, Check, X, GripVertical } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface GroupType {
   id: number;
@@ -28,6 +42,105 @@ interface GroupManageModalProps {
   onRefresh: () => void;
 }
 
+interface SortableGroupItemProps {
+  group: GroupType;
+  deletingGroupId: number | null;
+  setDeletingGroupId: (id: number | null) => void;
+  handleStartEdit: (group: GroupType) => void;
+  handleDelete: (id: number) => void;
+  handleConfirmDelete: (id: number) => void;
+  isPending: boolean;
+  t: any;
+}
+
+function SortableGroupItem({
+  group,
+  deletingGroupId,
+  setDeletingGroupId,
+  handleStartEdit,
+  handleDelete,
+  handleConfirmDelete,
+  isPending,
+  t,
+}: SortableGroupItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: group.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : 'auto',
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center justify-between p-3.5 bg-white/5 border border-white/5 rounded-xl hover:border-indigo-500/20 hover:bg-white/8 transition-all duration-200 shadow-sm hover:shadow-indigo-500/5 ${
+        isDragging ? 'border-indigo-500/30 bg-white/10' : ''
+      }`}
+    >
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        {/* 拖拽把手 */}
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1 -ml-1 text-white/30 hover:text-white/60 transition"
+        >
+          <GripVertical size={14} />
+        </div>
+        <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/5 text-indigo-400 flex-shrink-0">
+          <Folder size={16} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h4 className="text-xs font-bold text-white/90 truncate">{group.title}</h4>
+          <p className="text-[10px] text-white/30 capitalize mt-0.5">
+            {group.groupType === 'webpage' ? t.webpage : t.website}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-1 flex-shrink-0">
+        {deletingGroupId === group.id ? (
+          <>
+            <button
+              onClick={() => setDeletingGroupId(null)}
+              className="px-2 py-1 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 text-white/50 text-[10px] transition cursor-pointer"
+            >
+              {t.cancel}
+            </button>
+            <button
+              onClick={() => handleConfirmDelete(group.id)}
+              disabled={isPending}
+              className="px-2 py-1 rounded-lg bg-red-500/20 border border-red-500/20 hover:bg-red-500/30 text-red-400 text-[10px] font-medium transition cursor-pointer disabled:opacity-40"
+            >
+              {t.delete}
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => handleStartEdit(group)}
+              className="p-2 rounded-lg border border-white/5 bg-white/5 hover:bg-indigo-500/20 hover:text-indigo-300 transition text-white/50 cursor-pointer"
+            >
+              <Edit2 size={13} />
+            </button>
+            <button
+              onClick={() => handleDelete(group.id)}
+              disabled={isPending}
+              className="p-2 rounded-lg border border-white/5 bg-white/5 hover:bg-red-500/20 hover:text-red-400 transition text-white/50 cursor-pointer disabled:opacity-40"
+            >
+              <Trash2 size={13} />
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function GroupManageModal({
   isOpen,
   onClose,
@@ -38,6 +151,7 @@ export default function GroupManageModal({
   const [isPending, startTransition] = useTransition();
 
   // 状态
+  const [localGroups, setLocalGroups] = useState<GroupType[]>(groups);
   const [selectedGroup, setSelectedGroup] = useState<GroupType | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState('');
@@ -45,6 +159,47 @@ export default function GroupManageModal({
   const [groupType, setGroupType] = useState('website');
   const [errorMsg, setErrorMsg] = useState('');
   const [deletingGroupId, setDeletingGroupId] = useState<number | null>(null);
+
+  useEffect(() => {
+    setLocalGroups(groups);
+  }, [groups]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 只有移动超过 8px 才激活拖动，防止误触导致点击失败
+      },
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = localGroups.findIndex((g) => g.id === active.id);
+    const newIndex = localGroups.findIndex((g) => g.id === over.id);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const reordered = [...localGroups];
+      const [removed] = reordered.splice(oldIndex, 1);
+      reordered.splice(newIndex, 0, removed);
+
+      setLocalGroups(reordered);
+
+      startTransition(async () => {
+        try {
+          const sortItems = reordered.map((g, index) => ({
+            id: g.id,
+            sort: index + 1,
+          }));
+          await saveGroupSortAction(sortItems);
+          onRefresh();
+        } catch (e: any) {
+          setErrorMsg(e.message || t.saveFailed);
+        }
+      });
+    }
+  };
 
   const handleStartAdd = () => {
     setSelectedGroup(null);
@@ -196,60 +351,28 @@ export default function GroupManageModal({
         ) : (
           /* 分组列表展示 */
           <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1.5 mt-2">
-            {groups.map((group) => (
-              <div
-                key={group.id}
-                className="flex items-center justify-between p-3.5 bg-white/5 border border-white/5 rounded-xl hover:border-indigo-500/20 hover:bg-white/8 hover:-translate-y-0.5 transition-all duration-200 shadow-sm hover:shadow-indigo-500/5"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/5 text-indigo-400">
-                    <Folder size={16} />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white/90">{group.title}</h4>
-                    <p className="text-[10px] text-white/30 capitalize mt-0.5">
-                      {group.groupType === 'webpage' ? t.webpage : t.website}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  {deletingGroupId === group.id ? (
-                    <>
-                      <button
-                        onClick={() => setDeletingGroupId(null)}
-                        className="px-2 py-1 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 text-white/50 text-[10px] transition cursor-pointer"
-                      >
-                        {t.cancel}
-                      </button>
-                      <button
-                        onClick={() => handleConfirmDelete(group.id)}
-                        disabled={isPending}
-                        className="px-2 py-1 rounded-lg bg-red-500/20 border border-red-500/20 hover:bg-red-500/30 text-red-400 text-[10px] font-medium transition cursor-pointer disabled:opacity-40"
-                      >
-                        {t.delete}
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => handleStartEdit(group)}
-                        className="p-2 rounded-lg border border-white/5 bg-white/5 hover:bg-indigo-500/20 hover:text-indigo-300 transition text-white/50 cursor-pointer"
-                      >
-                        <Edit2 size={13} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(group.id)}
-                        disabled={isPending}
-                        className="p-2 rounded-lg border border-white/5 bg-white/5 hover:bg-red-500/20 hover:text-red-400 transition text-white/50 cursor-pointer disabled:opacity-40"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
+            <DndContext
+              id="group-sort-dnd"
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext items={localGroups.map((g) => g.id)} strategy={verticalListSortingStrategy}>
+                {localGroups.map((group) => (
+                  <SortableGroupItem
+                    key={group.id}
+                    group={group}
+                    deletingGroupId={deletingGroupId}
+                    setDeletingGroupId={setDeletingGroupId}
+                    handleStartEdit={handleStartEdit}
+                    handleDelete={handleDelete}
+                    handleConfirmDelete={handleConfirmDelete}
+                    isPending={isPending}
+                    t={t}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
           </div>
         )}
       </DialogContent>

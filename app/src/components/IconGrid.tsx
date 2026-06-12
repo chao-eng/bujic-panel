@@ -103,7 +103,10 @@ function SortableItem({
     }
   };
 
-  const isLocalIcon = iconItem.icon.src.startsWith('/') || iconItem.icon.src.startsWith('http');
+  const isLocalIcon =
+    iconItem.icon.src.startsWith('/') ||
+    iconItem.icon.src.startsWith('http') ||
+    iconItem.icon.src.startsWith('data:image/');
 
   if (groupType === 'webpage') {
     // 网页模式：扁平信息流样式

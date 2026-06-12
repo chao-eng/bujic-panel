@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useTransition } from 'react';
 import { useTranslation } from '../I18nProvider';
 import { editItemIconAction } from '../../actions/iconActions';
+import { DynamicIcon } from '../IconGrid';
 import {
   Dialog,
   DialogContent,
@@ -289,34 +290,53 @@ export default function EditIconModal({
           {/* 图标与上传 */}
           <div className="space-y-1.5">
             <Label className="text-white/60 text-xs font-medium">图标素材 (图片链接/本地上传/内置标识)</Label>
-            <div className="flex gap-2">
-              <Input
-                type="text"
-                placeholder="例如: /uploads/... 或 lucide:globe"
-                value={iconSrc}
-                onChange={(e) => setIconSrc(e.target.value)}
-                className="flex-1 bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20 text-xs"
-              />
-              <div className="relative">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  disabled={isUploading}
-                  className="hidden"
-                  id="icon-upload-input"
+            <div className="flex items-center gap-3">
+              {/* 实时预览 */}
+              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 text-indigo-400 flex-shrink-0">
+                {iconSrc.startsWith('/') || iconSrc.startsWith('http') || iconSrc.startsWith('data:image/') ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={iconSrc}
+                    alt=""
+                    className="w-6 h-6 object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <DynamicIcon name={iconSrc} className="text-indigo-400" size={20} />
+                )}
+              </div>
+
+              <div className="flex-1 flex gap-2">
+                <Input
+                  type="text"
+                  placeholder="例如: /uploads/... 或 lucide:globe"
+                  value={iconSrc}
+                  onChange={(e) => setIconSrc(e.target.value)}
+                  className="flex-1 bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20 text-xs"
                 />
-                <label
-                  htmlFor="icon-upload-input"
-                  className="flex items-center gap-1.5 px-3 py-2 bg-white/5 border border-white/5 hover:bg-white/10 active:scale-95 rounded-xl text-xs font-medium text-white/80 transition cursor-pointer select-none"
-                >
-                  {isUploading ? (
-                    <Loader2 size={13} className="animate-spin" />
-                  ) : (
-                    <Upload size={13} />
-                  )}
-                  <span>上传</span>
-                </label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    disabled={isUploading}
+                    className="hidden"
+                    id="icon-upload-input"
+                  />
+                  <label
+                    htmlFor="icon-upload-input"
+                    className="flex items-center gap-1.5 px-3 py-2 bg-white/5 border border-white/5 hover:bg-white/10 active:scale-95 rounded-xl text-xs font-medium text-white/80 transition cursor-pointer select-none"
+                  >
+                    {isUploading ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : (
+                      <Upload size={13} />
+                    )}
+                    <span>上传</span>
+                  </label>
+                </div>
               </div>
             </div>
           </div>

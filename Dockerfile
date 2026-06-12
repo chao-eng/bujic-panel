@@ -14,10 +14,16 @@ RUN pnpm install --frozen-lockfile
 COPY app/ .
 
 # 生成 Prisma 客户端
-RUN npx prisma generate
+RUN pnpm exec prisma generate
 
 # 编译 Next.js 生产产物
 RUN pnpm build
+
+# 编译 seed.ts 种子文件为 seed.js，方便在 runner 阶段以纯 node 环境运行 (免去安装 tsx 依赖)
+RUN pnpm exec tsc prisma/seed.ts --module commonjs --target es2020 --esModuleInterop --skipLibCheck
+
+# 清除所有开发依赖，仅在 node_modules 中保留生产环境依赖，极大地缩小体积
+RUN pnpm prune --prod
 
 # 阶段 2: 运行阶段 (Runner)
 FROM node:20-alpine AS runner
@@ -25,34 +31,28 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 # 安装 openssl 确保 Prisma Engine (Rust 编写的本地二进制文件) 在 Alpine 下正常运行
-RUN apk add --no-cache openssl
+# 并在全局安装极轻量的 prisma (用于执行数据库迁移部署)，随后清理 npm 缓存
+RUN apk add --no-cache openssl && \
+    npm install -g prisma && \
+    npm cache clean --force
 
 # 设置生产环境变量
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV DATA_DIR=/app/data
 
-# 全局安装 pnpm 以及 tsx/prisma (在无外网生产环境中运行 TypeScript seed 种子脚本时无需现场下载 tsx，且需要 prisma CLI 生成客户端)
-RUN npm install -g pnpm tsx prisma
-
-# 复制依赖定义并只安装生产依赖
-COPY app/package.json app/pnpm-lock.yaml app/pnpm-workspace.yaml ./
-RUN pnpm install --prod --frozen-lockfile
-
-# 从构建器中复制所需的编译产物和静态文件
+# 从构建器中复制已修剪开发依赖的 node_modules，以及编译产物、静态文件和脚本
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/scripts ./scripts
-
-# 在生产运行容器中直接运行 prisma generate，避免从 builder 复制 pnpm 软链接导致的 "node_modules/.prisma not found" 问题
-RUN npx prisma generate
+COPY --from=builder /app/package.json ./package.json
 
 # 暴露端口
 EXPOSE 3000
 
 # 容器启动时：
-# 1. 自动执行数据库迁移确保表结构为最新状态 (db:migrate)
-# 2. 自动检查数据库中是否存在默认管理员和默认站点，如为空则进行种子数据灌入 (db:seed)
+# 1. 自动执行数据库迁移确保表结构为最新状态 (prisma migrate deploy)
+# 2. 运行编译后的 seed.js (node prisma/seed.js) 导入种子数据 (如果不存在)
 # 3. 启动 Next.js 生产服务器
-CMD ["sh", "-c", "pnpm db:migrate && pnpm db:seed && pnpm start"]
+CMD ["sh", "-c", "prisma migrate deploy && node prisma/seed.js && npx next start"]

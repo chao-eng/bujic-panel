@@ -93,12 +93,72 @@ pnpm start
 
 ---
 
-## 🐳 Docker 部署指南 (推荐)
+## 🐳 Docker 部署（推荐）
 
-由于项目数据和上传文件全部归集在 `DATA_DIR` 中，非常适合制作轻量级 Docker 镜像进行自托管部署。
+项目提供预构建的 Docker 镜像，**无需下载源码，一条命令即可运行**。
 
-### 1. 编写 Dockerfile (参考)
-在项目根目录 `bujic-Panel` 下创建 `Dockerfile`：
+### 方式一：Docker Compose（推荐）
+
+创建 `docker-compose.yml`：
+```yaml
+version: '3.8'
+services:
+  bujic-panel:
+    image: crpi-a1liy20beodq2bdl.cn-beijing.personal.cr.aliyuncs.com/bujic/bujic-panel:latest
+    container_name: bujic-panel
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - DATA_DIR=/app/data
+```
+
+启动服务：
+```bash
+docker compose up -d
+```
+
+启动后访问 [http://localhost:3000](http://localhost:3000)
+
+> [!NOTE]
+> 默认管理员账号：**admin** / **admin**，首次登录后请立即修改密码。
+
+> [!TIP]
+> 数据（数据库 + 上传文件）统一保存在宿主机的 `./data` 目录中，升级镜像时数据不会丢失。
+
+### 方式二：Docker Run（快速体验）
+
+```bash
+docker run -d \
+  --name bujic-panel \
+  --restart unless-stopped \
+  -p 3000:3000 \
+  -v "$(pwd)/data:/app/data" \
+  -e DATA_DIR=/app/data \
+  crpi-a1liy20beodq2bdl.cn-beijing.personal.cr.aliyuncs.com/bujic/bujic-panel:latest
+```
+
+### 方式三：自行构建镜像（高级）
+
+<details>
+<summary>展开查看自行构建步骤</summary>
+
+在项目根目录执行：
+```bash
+# 构建镜像
+docker build -t bujic-panel .
+
+# 运行容器
+docker run -d \
+  --name bujic-panel \
+  -p 3000:3000 \
+  -v /my/local/data:/app/data \
+  bujic-panel
+```
+
+参考 `Dockerfile`（多阶段构建）：
 ```dockerfile
 FROM node:20-alpine AS builder
 WORKDIR /app
@@ -124,24 +184,10 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/scripts ./scripts
 
 EXPOSE 3000
-
-# 启动时自动检查并更新数据库结构，然后启动 Next.js 生产服务
 CMD ["sh", "-c", "pnpm db:migrate && pnpm start"]
 ```
 
-### 2. 部署运行
-构建镜像并挂载本地卷（确保数据持久化）：
-```bash
-# 构建镜像
-docker build -t bujic-panel .
-
-# 运行容器 (挂载数据卷到宿主机的 /my/local/data)
-docker run -d \
-  -p 3000:3000 \
-  -v /my/local/data:/app/data \
-  --name bujic-panel \
-  bujic-panel
-```
+</details>
 
 ---
 

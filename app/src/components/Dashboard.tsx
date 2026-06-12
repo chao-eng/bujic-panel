@@ -90,6 +90,35 @@ export default function Dashboard({
 
   const [activeGroupScroll, setActiveGroupScroll] = useState<number | null>(null);
 
+  // 折叠分组集合 — SSR 初始为空，挂载后再从 localStorage 恢复（避免水合不匹配）
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('bujic-collapsed-groups');
+      if (stored) {
+        const ids: number[] = JSON.parse(stored);
+        if (ids.length > 0) setCollapsedGroups(new Set(ids));
+      }
+    } catch {}
+  }, []);
+
+  const toggleGroupCollapse = (id: number) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      // 同步持久化到 localStorage
+      try {
+        localStorage.setItem('bujic-collapsed-groups', JSON.stringify([...next]));
+      } catch {}
+      return next;
+    });
+  };
+
   // 过滤满足当前展示模式 (网站/网页) 的分组与书签
   const activeGroups = groups.filter((g) => g.groupType === activeTab);
 
@@ -411,25 +440,43 @@ export default function Dashboard({
               // 如果正在过滤且当前分组下无匹配书签，隐去该分组
               if (searchQuery.trim() && filteredIcons.length === 0) return null;
 
+              const isCollapsed = collapsedGroups.has(group.id);
+
               return (
-                <div key={group.id} id={`group-${group.id}`} className="space-y-4 scroll-mt-24">
-                  <div className="flex items-center gap-2 border-b border-white/5 pb-2">
-                    <h3 className="font-heading font-extrabold text-base text-white/90">
+                <div key={group.id} id={`group-${group.id}`} className="scroll-mt-24">
+                  {/* 分组标题行 — 点击折叠/展开 */}
+                  <button
+                    onClick={() => toggleGroupCollapse(group.id)}
+                    className="w-full flex items-center gap-2 border-b border-white/5 pb-2 mb-4 group/hdr cursor-pointer hover:border-white/10 transition-colors"
+                  >
+                    <ChevronDown
+                      size={14}
+                      className={`text-white/30 group-hover/hdr:text-white/60 transition-transform duration-200 ${
+                        isCollapsed ? '-rotate-90' : 'rotate-0'
+                      }`}
+                    />
+                    <h3 className="font-heading font-extrabold text-base text-white/90 group-hover/hdr:text-white transition-colors">
                       {group.title}
                     </h3>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-white/5 text-white/30 font-mono">
                       {filteredIcons.length}
                     </span>
-                  </div>
+                    {isCollapsed && (
+                      <span className="ml-auto text-[10px] text-white/20 italic pr-1">已折叠</span>
+                    )}
+                  </button>
 
-                  <IconGrid
-                    groupId={group.id}
-                    groupType={activeTab}
-                    icons={filteredIcons}
-                    onReorder={(reordered) => handleReorderIcons(group.id, reordered)}
-                    onEdit={handleEditIcon}
-                    onDelete={handleDeleteIcon}
-                  />
+                  {/* 折叠时隐藏书签网格 */}
+                  {!isCollapsed && (
+                    <IconGrid
+                      groupId={group.id}
+                      groupType={activeTab}
+                      icons={filteredIcons}
+                      onReorder={(reordered) => handleReorderIcons(group.id, reordered)}
+                      onEdit={handleEditIcon}
+                      onDelete={handleDeleteIcon}
+                    />
+                  )}
                 </div>
               );
             })}

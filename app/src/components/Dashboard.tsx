@@ -270,8 +270,19 @@ export default function Dashboard({
       {/* 顶部导航控制条 */}
       <header className="w-full border-b border-white/5 bg-[#0a0b10]/60 backdrop-blur-xl sticky top-0 z-40 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-md flex items-center justify-center font-heading font-extrabold text-white text-base">
-            BJ
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-md flex items-center justify-center text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+              <circle cx="7" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M7 2V3M7 11V12M2 7H3M11 7H12" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
+              <path d="M18 20C17.5 15.5 16 11.5 13 9" />
+              <path d="M13 9C10.5 8.5 8 9.5 7 11.5" />
+              <path d="M13 9C11 7 9.5 5 11 3" />
+              <path d="M13 9C14.5 7 16.5 6.5 18.5 7.5" />
+              <path d="M13 9C15.5 10 17 11.5 17.5 13.5" />
+              <path d="M13 9C13 11 12 13 10.5 14" />
+              <path d="M2 20C5 18 13 17 22 20" />
+              <path d="M4 22C6 21.5 8 21.5 10 22C12 22.5 14 22.5 16 22C18 21.5 20 21.5 22 22" strokeWidth="1.5" opacity="0.8" />
+            </svg>
           </div>
           <span className="font-heading font-bold text-white tracking-wide text-sm hidden sm:inline">
             布吉岛导航

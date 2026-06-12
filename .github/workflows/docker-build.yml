@@ -3,7 +3,7 @@ name: Build and Push Docker Image to Aliyun ACR
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   build-and-push:

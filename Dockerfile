@@ -43,6 +43,7 @@ RUN apk add --no-cache openssl && \
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV DATA_DIR=/app/data
+ENV SECURE_COOKIE=false
 
 # 从构建阶段中复制 Next.js standalone 打包产物 (仅包含运行所需的代码及精简后的生产 node_modules)
 COPY --from=builder /app/.next/standalone ./

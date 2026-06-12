@@ -51,7 +51,7 @@ export async function loginAction(data: { username: string; password: string }) 
   const cookieStore = await cookies();
   cookieStore.set('auth_token', clientToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.SECURE_COOKIE === 'true',
     sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 7, // 7 天过期
     path: '/',

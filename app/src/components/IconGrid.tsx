@@ -96,11 +96,18 @@ function SortableItem({
     if ((e.target as HTMLElement).closest('.controls-btn')) return;
     
     const openUrl = iconItem.url;
+    const link = document.createElement('a');
+    link.href = openUrl;
+    link.referrerPolicy = 'no-referrer';
+    link.rel = 'noopener noreferrer';
     if (iconItem.openMethod === 1) {
-      window.open(openUrl, '_blank');
+      link.target = '_blank';
     } else {
-      window.location.href = openUrl;
+      link.target = '_self';
     }
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const isLocalIcon =

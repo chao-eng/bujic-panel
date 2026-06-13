@@ -23,6 +23,7 @@ export const metadata: Metadata = {
   icons: {
     icon: '/logo.svg',
   },
+  referrer: 'same-origin',
 };
 
 export default function RootLayout({

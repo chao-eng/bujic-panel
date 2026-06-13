@@ -17,7 +17,7 @@ export async function getGroupsAction() {
 
   // 兜底初始化逻辑 (如果数据库中无该用户分组)
   if (groups.length === 0) {
-    groups = await db.$transaction(async (tx) => {
+    groups = await db.$transaction(async (tx: any) => {
       const g1 = await tx.itemIconGroup.create({
         data: {
           title: '常用网站',
@@ -112,8 +112,8 @@ export async function deleteGroupsAction(ids: number[]) {
     return { success: false, code: 1201, message: '请至少保留一个分组！' };
   }
 
-  await db.$transaction(async (tx) => {
-    // 级联删除关联的 ItemIcon
+  await db.$transaction(async (tx: any) => {
+    // 级联删除关联 of ItemIcon
     await tx.itemIcon.deleteMany({
       where: {
         userId: user.id,

@@ -160,6 +160,11 @@ export default function GroupManageModal({
   const [errorMsg, setErrorMsg] = useState('');
   const [deletingGroupId, setDeletingGroupId] = useState<number | null>(null);
 
+  // tab页管理状态 (网站/网页)
+  const [activeManageTab, setActiveManageTab] = useState<'website' | 'webpage'>('website');
+
+  const filteredLocalGroups = localGroups.filter((g) => g.groupType === activeManageTab);
+
   useEffect(() => {
     setLocalGroups(groups);
   }, [groups]);
@@ -176,19 +181,22 @@ export default function GroupManageModal({
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = localGroups.findIndex((g) => g.id === active.id);
-    const newIndex = localGroups.findIndex((g) => g.id === over.id);
+    const oldIndex = filteredLocalGroups.findIndex((g) => g.id === active.id);
+    const newIndex = filteredLocalGroups.findIndex((g) => g.id === over.id);
 
     if (oldIndex !== -1 && newIndex !== -1) {
-      const reordered = [...localGroups];
-      const [removed] = reordered.splice(oldIndex, 1);
-      reordered.splice(newIndex, 0, removed);
+      const reorderedFiltered = [...filteredLocalGroups];
+      const [removed] = reorderedFiltered.splice(oldIndex, 1);
+      reorderedFiltered.splice(newIndex, 0, removed);
 
-      setLocalGroups(reordered);
+      const otherGroups = localGroups.filter((g) => g.groupType !== activeManageTab);
+      const newLocalGroups = [...otherGroups, ...reorderedFiltered];
+
+      setLocalGroups(newLocalGroups);
 
       startTransition(async () => {
         try {
-          const sortItems = reordered.map((g, index) => ({
+          const sortItems = reorderedFiltered.map((g, index) => ({
             id: g.id,
             sort: index + 1,
           }));
@@ -206,7 +214,7 @@ export default function GroupManageModal({
     setIsEditing(true);
     setTitle('');
     setIcon('lucide:folder');
-    setGroupType('website');
+    setGroupType(activeManageTab);
     setErrorMsg('');
   };
 
@@ -264,7 +272,7 @@ export default function GroupManageModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] bg-[#12131a]/95 border border-white/5 text-white/90 rounded-2xl backdrop-blur-xl">
+      <DialogContent aria-describedby={undefined} className="sm:max-w-[500px] bg-[#12131a]/95 border border-white/5 text-white/90 rounded-2xl backdrop-blur-xl">
         <DialogHeader>
           <DialogTitle className="font-heading text-lg font-bold text-white flex items-center justify-between pr-8">
             <span>分组管理</span>
@@ -350,29 +358,57 @@ export default function GroupManageModal({
           </form>
         ) : (
           /* 分组列表展示 */
-          <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1.5 mt-2">
-            <DndContext
-              id="group-sort-dnd"
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext items={localGroups.map((g) => g.id)} strategy={verticalListSortingStrategy}>
-                {localGroups.map((group) => (
-                  <SortableGroupItem
-                    key={group.id}
-                    group={group}
-                    deletingGroupId={deletingGroupId}
-                    setDeletingGroupId={setDeletingGroupId}
-                    handleStartEdit={handleStartEdit}
-                    handleDelete={handleDelete}
-                    handleConfirmDelete={handleConfirmDelete}
-                    isPending={isPending}
-                    t={t}
-                  />
-                ))}
-              </SortableContext>
-            </DndContext>
+          <div className="space-y-3.5 mt-2">
+            {/* Tab 切换管理栏 */}
+            <div className="flex bg-white/5 p-1 rounded-xl border border-white/5 text-xs text-white/50">
+              <button
+                type="button"
+                onClick={() => setActiveManageTab('website')}
+                className={`flex-1 py-1.5 rounded-lg font-medium transition cursor-pointer text-center ${
+                  activeManageTab === 'website'
+                    ? 'bg-white/10 text-white font-semibold'
+                    : 'hover:text-white'
+                }`}
+              >
+                {t.website}
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveManageTab('webpage')}
+                className={`flex-1 py-1.5 rounded-lg font-medium transition cursor-pointer text-center ${
+                  activeManageTab === 'webpage'
+                    ? 'bg-white/10 text-white font-semibold'
+                    : 'hover:text-white'
+                }`}
+              >
+                {t.webpage}
+              </button>
+            </div>
+
+            <div className="space-y-2.5 max-h-[280px] overflow-y-auto pr-1.5 pt-0.5">
+              <DndContext
+                id={`group-sort-dnd-${activeManageTab}`}
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext items={filteredLocalGroups.map((g) => g.id)} strategy={verticalListSortingStrategy}>
+                  {filteredLocalGroups.map((group) => (
+                    <SortableGroupItem
+                      key={group.id}
+                      group={group}
+                      deletingGroupId={deletingGroupId}
+                      setDeletingGroupId={setDeletingGroupId}
+                      handleStartEdit={handleStartEdit}
+                      handleDelete={handleDelete}
+                      handleConfirmDelete={handleConfirmDelete}
+                      isPending={isPending}
+                      t={t}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            </div>
           </div>
         )}
       </DialogContent>

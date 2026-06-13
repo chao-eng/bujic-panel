@@ -20,6 +20,8 @@ import * as Icons from 'lucide-react';
 import { useTranslation } from './I18nProvider';
 import BeszelWidget from './Widgets/BeszelWidget';
 import QbittorrentWidget, { formatSpeed } from './Widgets/QbittorrentWidget';
+import JellyfinWidget from './Widgets/JellyfinWidget';
+import UmamiWidget from './Widgets/UmamiWidget';
 
 // 动态图标解析器
 export function DynamicIcon({ name, className, size = 18 }: { name: string; className?: string; size?: number }) {
@@ -156,7 +158,7 @@ function SortableItem({
             )}
           </div>
           <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div>
+            <div className="min-w-0 flex-1">
               <h4 className="text-sm font-semibold text-white/90 truncate group-hover:text-indigo-300 transition-colors">
                 {iconItem.title}
               </h4>
@@ -200,6 +202,34 @@ function SortableItem({
                     ) : (
                       <span className="text-white/30">未连接</span>
                     )
+                  ) : iconItem.widgetType === 'jellyfin' ? (
+                    <>
+                      <span className="flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        在线
+                      </span>
+                      <span>电影: <span className="font-mono text-white/80">{statsObj.data.moviesCount}</span></span>
+                      <span>系列: <span className="font-mono text-white/80">{statsObj.data.seriesCount}</span></span>
+                      <span>剧集: <span className="font-mono text-white/80">{statsObj.data.episodesCount}</span></span>
+                      {statsObj.data.nowPlaying && statsObj.data.nowPlaying.length > 0 && (
+                        <>
+                          <span className="text-white/30">|</span>
+                          <span className="text-emerald-400 flex items-center gap-1">
+                            播放中 ({statsObj.data.nowPlaying.length})
+                          </span>
+                        </>
+                      )}
+                    </>
+                  ) : iconItem.widgetType === 'umami' ? (
+                    <>
+                      <span className="flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        监测中
+                      </span>
+                      <span>访客: <span className="font-mono text-indigo-400 font-semibold">{statsObj.data.visitors}</span></span>
+                      <span>访问: <span className="font-mono text-purple-400 font-semibold">{statsObj.data.visits}</span></span>
+                      <span>浏览: <span className="font-mono text-emerald-400 font-semibold">{statsObj.data.pageviews}</span></span>
+                    </>
                   ) : (
                     <span className="text-white/30">就绪</span>
                   )
@@ -252,26 +282,28 @@ function SortableItem({
         isWidget ? 'col-span-2' : ''
       }`}
     >
-      {/* 鼠标悬浮显现操作面板 */}
-      <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-        {iconItem.pinned && (
-          <div className="p-1 text-yellow-400">
-            <Pin size={11} fill="currentColor" className="rotate-45" />
-          </div>
-        )}
-        <button
-          onClick={(e) => { e.stopPropagation(); onEdit(iconItem); }}
-          className="controls-btn p-1.5 rounded-lg border border-white/5 bg-white/5 hover:bg-indigo-500/20 hover:text-indigo-300 transition text-white/50 cursor-pointer"
-        >
-          <Edit2 size={11} />
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete(iconItem.id); }}
-          className="controls-btn p-1.5 rounded-lg border border-white/5 bg-white/5 hover:bg-red-500/20 hover:text-red-400 transition text-white/50 cursor-pointer"
-        >
-          <Trash2 size={11} />
-        </button>
-      </div>
+      {/* 鼠标悬浮显现操作面板 (仅适用于监控组件) */}
+      {isWidget && (
+        <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+          {iconItem.pinned && (
+            <div className="p-1 text-yellow-400">
+              <Pin size={11} fill="currentColor" className="rotate-45" />
+            </div>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); onEdit(iconItem); }}
+            className="controls-btn p-1.5 rounded-lg border border-white/5 bg-white/5 hover:bg-indigo-500/20 hover:text-indigo-300 transition text-white/50 cursor-pointer"
+          >
+            <Edit2 size={11} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(iconItem.id); }}
+            className="controls-btn p-1.5 rounded-lg border border-white/5 bg-white/5 hover:bg-red-500/20 hover:text-red-400 transition text-white/50 cursor-pointer"
+          >
+            <Trash2 size={11} />
+          </button>
+        </div>
+      )}
 
       {iconItem.widgetType === 'beszel' ? (
         <BeszelWidget
@@ -289,42 +321,115 @@ function SortableItem({
           error={statsObj?.success === false ? statsObj.error : undefined}
           isLoading={!!isWidgetsLoading}
         />
+      ) : iconItem.widgetType === 'jellyfin' ? (
+        <JellyfinWidget
+          title={iconItem.title}
+          stats={statsObj?.data}
+          url={iconItem.url}
+          error={statsObj?.success === false ? statsObj.error : undefined}
+          isLoading={!!isWidgetsLoading}
+        />
+      ) : iconItem.widgetType === 'umami' ? (
+        <UmamiWidget
+          title={iconItem.title}
+          stats={statsObj?.data}
+          url={iconItem.url}
+          error={statsObj?.success === false ? statsObj.error : undefined}
+          isLoading={!!isWidgetsLoading}
+        />
       ) : (
         <>
-          {/* 置顶标识 */}
-          {iconItem.pinned && (
-            <div className="absolute top-3 right-3 text-yellow-400 group-hover:opacity-0 transition-opacity">
-              <Pin size={11} fill="currentColor" className="rotate-45" />
-            </div>
-          )}
-
-          {/* 图标与基本控制 */}
-          <div className="flex items-start justify-between">
-            <div className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 group-hover:border-indigo-500/20 group-hover:bg-indigo-500/5 transition-all">
-              {isLocalIcon ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={iconItem.icon.src}
-                  alt=""
-                  className="w-6 h-6 object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = 'none';
-                  }}
-                />
-              ) : (
-                <DynamicIcon name={iconItem.icon.src} className="text-indigo-400" size={22} />
+          {/* 默认未悬停状态：核心信息水平和垂直居中分布 */}
+          <div className="absolute inset-0 p-5 flex flex-col items-center justify-center text-center opacity-100 scale-100 group-hover:opacity-0 group-hover:scale-95 group-hover:pointer-events-none transition-all duration-300 ease-out">
+            {/* 图标与图钉 */}
+            <div className="relative mb-2">
+              <div className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center border border-white/5">
+                {isLocalIcon ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={iconItem.icon.src}
+                    alt=""
+                    className="w-6 h-6 object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <DynamicIcon name={iconItem.icon.src} className="text-indigo-400" size={22} />
+                )}
+              </div>
+              {iconItem.pinned && (
+                <span className="absolute -top-1 -right-1 text-yellow-400 bg-[#12131a]/90 border border-white/5 rounded-full p-0.5 shadow-sm">
+                  <Pin size={8} fill="currentColor" className="rotate-45" />
+                </span>
               )}
+            </div>
+
+            {/* 标题与描述 */}
+            <div className="min-w-0 w-full px-2">
+              <h4 className="text-xs font-semibold text-white/95 flex items-center justify-center gap-0.5 w-full min-w-0">
+                <span className="truncate min-w-0">{iconItem.title}</span>
+              </h4>
+              <p className="text-[10px] text-white/30 truncate mt-0.5" title={iconItem.description || iconItem.url}>
+                {iconItem.description || iconItem.url}
+              </p>
             </div>
           </div>
 
-          {/* 书签标题与描述 */}
-          <div className="mt-auto min-w-0">
-            <h4 className="text-xs font-semibold text-white/95 truncate group-hover:text-indigo-300 transition-colors">
-              {iconItem.title}
-            </h4>
-            <p className="text-[10px] text-white/30 truncate mt-0.5" title={iconItem.description || iconItem.url}>
-              {iconItem.description || iconItem.url}
-            </p>
+          {/* 鼠标悬停状态：信息左移、左对齐，右侧滑入纵向功能按钮 */}
+          <div className="absolute inset-0 p-5 flex items-center justify-between opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all duration-300 ease-out">
+            {/* 左侧：图标与文本垂直叠放，左对齐 */}
+            <div className="flex flex-col h-full justify-between min-w-0 flex-1 pr-4">
+              {/* 图标与图钉 */}
+              <div className="relative w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 self-start">
+                {isLocalIcon ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={iconItem.icon.src}
+                    alt=""
+                    className="w-6 h-6 object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <DynamicIcon name={iconItem.icon.src} className="text-indigo-400" size={22} />
+                )}
+                {iconItem.pinned && (
+                  <span className="absolute -top-1 -right-1 text-yellow-400 bg-[#12131a]/90 border border-white/5 rounded-full p-0.5 shadow-sm">
+                    <Pin size={8} fill="currentColor" className="rotate-45" />
+                  </span>
+                )}
+              </div>
+
+              {/* 标题与描述 */}
+              <div className="min-w-0 w-full text-left">
+                <h4 className="text-xs font-semibold text-white/95 truncate flex items-center gap-0.5">
+                  <span className="truncate">{iconItem.title}</span>
+                </h4>
+                <p className="text-[10px] text-white/30 truncate mt-0.5" title={iconItem.description || iconItem.url}>
+                  {iconItem.description || iconItem.url}
+                </p>
+              </div>
+            </div>
+
+            {/* 右侧：纵向排列的编辑/删除按钮 */}
+            <div className="flex flex-col gap-2 flex-shrink-0 pl-1">
+              <button
+                onClick={(e) => { e.stopPropagation(); onEdit(iconItem); }}
+                className="controls-btn p-1.5 rounded-lg border border-white/5 bg-white/5 hover:bg-indigo-500/20 hover:text-indigo-300 transition text-white/50 cursor-pointer"
+                title="编辑"
+              >
+                <Edit2 size={11} />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onDelete(iconItem.id); }}
+                className="controls-btn p-1.5 rounded-lg border border-white/5 bg-white/5 hover:bg-red-500/20 hover:text-red-400 transition text-white/50 cursor-pointer"
+                title="删除"
+              >
+                <Trash2 size={11} />
+              </button>
+            </div>
           </div>
         </>
       )}
@@ -376,7 +481,7 @@ export default function IconGrid({
         <div
           className={
             groupType === 'webpage'
-              ? 'grid grid-cols-1 md:grid-cols-2 gap-4'
+              ? 'grid grid-cols-1 gap-3'
               : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4'
           }
         >

@@ -295,7 +295,7 @@ export default function SettingsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[720px] bg-[#12131a]/95 border border-white/5 text-white/90 rounded-2xl backdrop-blur-xl p-0 overflow-hidden">
+      <DialogContent aria-describedby={undefined} className="sm:max-w-[720px] bg-[#12131a]/95 border border-white/5 text-white/90 rounded-2xl backdrop-blur-xl p-0 overflow-hidden">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle className="font-heading text-lg font-bold text-white flex items-center gap-2">
             <span>{t.settings}</span>

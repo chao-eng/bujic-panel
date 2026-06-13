@@ -15,6 +15,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { Loader2, Globe, Sparkles, Upload } from 'lucide-react';
+import { encryptSensitive } from '../../lib/client-crypto';
 
 interface GroupType {
   id: number;
@@ -332,6 +333,11 @@ export default function EditIconModal({
             domain: umamiDomain,
           };
         }
+        const settingsJson = JSON.stringify(settingsObj);
+        // 加密 widgetSettings，防止凭证明文出现在网络请求中
+        const encryptedSettings = settingsObj && Object.keys(settingsObj).length > 0
+          ? await encryptSensitive(settingsJson)
+          : settingsJson;
         const saved = await editItemIconAction({
           id: editingIcon?.id,
           title,
@@ -343,7 +349,7 @@ export default function EditIconModal({
           itemIconGroupId: Number(groupId),
           icon: { itemType: iconType, src: iconSrc },
           widgetType,
-          widgetSettings: JSON.stringify(settingsObj),
+          widgetSettings: encryptedSettings,
         });
         onSave(saved);
         onClose();

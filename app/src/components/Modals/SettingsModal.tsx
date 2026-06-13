@@ -22,6 +22,7 @@ import {
 import { Loader2, Plus, Edit2, Trash2, Shield, User, Lock, Download, Upload, Info, Palette } from 'lucide-react';
 import { THEMES, ThemeId } from '../../lib/themes';
 import { useTheme } from '../I18nProvider';
+import { encryptSensitive } from '../../lib/client-crypto';
 
 interface UserType {
   id: number;
@@ -187,7 +188,10 @@ export default function SettingsModal({
     }
 
     startTransition(async () => {
-      const res = await updatePasswordAction({ oldPassword, newPassword });
+      // 加密旧密码和新密码再传输
+      const encOld = await encryptSensitive(oldPassword);
+      const encNew = await encryptSensitive(newPassword);
+      const res = await updatePasswordAction({ oldPassword: encOld, newPassword: encNew });
       if (res.success) {
         setPasswordError(false);
         setPasswordMsg(t.passwordChangedRelogin);
@@ -231,13 +235,15 @@ export default function SettingsModal({
     setAdminError(false);
 
     if (editingUser) {
+      // 徂数中密码有内容时才加密
+      const encPwd = managePassword ? await encryptSensitive(managePassword) : undefined;
       const res = await updateUserAction({
         id: editingUser.id,
         name: manageName,
         mail: manageMail,
         status: manageStatus,
         role: manageRole,
-        password: managePassword || undefined,
+        password: encPwd,
       });
       if (res.success) {
         setIsAddUserOpen(false);
@@ -247,9 +253,11 @@ export default function SettingsModal({
         setAdminMsg(res.message || t.updateFailed);
       }
     } else {
+      // 新建用户密码加密
+      const encPwd = managePassword ? await encryptSensitive(managePassword) : undefined;
       const res = await createUserAction({
         username: manageUsername,
-        password: managePassword || undefined,
+        password: encPwd,
         name: manageName,
         mail: manageMail,
         role: manageRole,

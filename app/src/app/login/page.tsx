@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { loginAction } from '../../actions/userActions';
 import { useTranslation } from '../../components/I18nProvider';
 import { Languages, User, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { encryptSensitive } from '../../lib/client-crypto';
 
 export default function LoginPage() {
   const { t, locale, setLocale } = useTranslation();
@@ -21,7 +22,9 @@ export default function LoginPage() {
     setErrorMsg('');
 
     startTransition(async () => {
-      const res = await loginAction({ username, password });
+      // 提交前对密码加密，防止明文出现在网络请求体中
+      const encryptedPassword = await encryptSensitive(password);
+      const res = await loginAction({ username, password: encryptedPassword });
       if (res.success) {
         // 登录成功，跳转到仪表盘主页
         router.push('/');

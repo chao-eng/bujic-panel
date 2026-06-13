@@ -3,6 +3,7 @@
 import { db } from '../lib/db';
 import { getCurrentUser } from '../lib/auth';
 import { revalidatePath } from 'next/cache';
+import { decryptFromTransport } from '../lib/crypto';
 
 // 获取分组下的书签列表
 export async function getIconsByGroupIdAction(groupId: number) {
@@ -77,6 +78,8 @@ export async function editItemIconAction(data: {
   }
 
   const iconJson = JSON.stringify(data.icon || { itemType: 1, src: '' });
+  // 解密前端加密传输的 widgetSettings，如未加密则原样保留
+  const widgetSettings = decryptFromTransport(data.widgetSettings ?? '{}');
 
   if (data.id) {
     // 编辑
@@ -92,7 +95,7 @@ export async function editItemIconAction(data: {
         itemIconGroupId: data.itemIconGroupId,
         iconJson,
         widgetType: data.widgetType ?? '',
-        widgetSettings: data.widgetSettings ?? '{}',
+        widgetSettings: widgetSettings,
         ...(data.sort !== undefined ? { sort: data.sort } : {}),
       },
     });
@@ -111,7 +114,7 @@ export async function editItemIconAction(data: {
         itemIconGroupId: data.itemIconGroupId,
         iconJson,
         widgetType: data.widgetType ?? '',
-        widgetSettings: data.widgetSettings ?? '{}',
+        widgetSettings: widgetSettings,
         sort: data.sort ?? 9999,
         userId: user.id,
       },

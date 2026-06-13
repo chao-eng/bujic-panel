@@ -61,12 +61,25 @@ pnpm install
 ```
 
 ### 3. 配置环境变量
-在 `app` 目录下创建或修改 `.env` 文件，用于指定数据存放路径：
+在 `app` 目录下创建或修改 `.env` 文件：
 ```env
 DATA_DIR="data"
+
+# 敏感信息传输加密密钥（64 位十六进制字符串，可用下方命令生成）
+ENCRYPT_KEY=your_64_hex_chars_here
 ```
+
 > [!NOTE]
 > `DATA_DIR` 路径可以是相对路径或绝对路径。系统会自动在其下创建 `database` 文件夹存放 SQLite 数据库文件，以及 `uploads` 文件夹存放上传的文件。如果不指定，默认使用 `app/data`。
+
+> [!IMPORTANT]
+> `ENCRYPT_KEY` 用于对前后端传输中的敏感字段（登录密码、Widget 凭证等）进行 **AES-256-GCM** 加密，防止明文出现在网络请求体中。
+> - 生产环境**必须**自定义此密钥，请使用以下命令生成随机值：
+>   ```bash
+>   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+>   ```
+> - 若未设置，系统将使用内置 fallback 密钥（仅适用于本地开发/体验，**不应用于生产**）。
+> - 修改此密钥后，已有的会话不受影响（密钥仅作用于传输层，不影响数据库存储格式）。
 
 ### 4. 数据库初始化 (Migrate & Seed)
 执行数据库推送与初始数据灌入脚本：
@@ -113,6 +126,7 @@ services:
       - ./data:/app/data
     environment:
       - DATA_DIR=/app/data
+      - ENCRYPT_KEY=your_64_hex_chars_here  # 生产必填，见下方说明
 ```
 
 启动服务：
@@ -218,12 +232,13 @@ bujic-Panel/
 
 ## 🔒 安全与优化
 
-1. **目录穿越防御**：`/uploads` 路由经过严苛的 `path.resolve` 与 `startsWith` 校验，杜绝通过相对路径 `../` 读取宿主机系统文件的风险。
-2. **SQLite 并发优化 (WAL)**：在 `src/lib/db.ts` 初始化数据库连接时，自动执行：
+1. **敏感信息加密传输**：登录密码、修改密码、Widget 第三方服务凭证（Beszel、qBittorrent、Jellyfin、Umami 等）在提交前均经过 **AES-256-GCM** 客户端加密，服务端解密后再进行后续处理，防止明文凭证出现在网络请求体或代理日志中。加密密钥由 `ENCRYPT_KEY` 环境变量控制，服务端通过 HMAC 派生客户端密钥，主密钥从不暴露到前端。
+2. **目录穿越防御**：`/uploads` 路由经过严苛的 `path.resolve` 与 `startsWith` 校验，杜绝通过相对路径 `../` 读取宿主机系统文件的风险。
+3. **SQLite 并发优化 (WAL)**：在 `src/lib/db.ts` 初始化数据库连接时，自动执行：
    - `PRAGMA journal_mode = WAL;`（启用预写日志，提高高并发读写性能）。
    - `PRAGMA synchronous = NORMAL;`（平衡安全性与物理写盘开销）。
    - `PRAGMA busy_timeout = 5000;`（防止 SQLite 多并发写入时频繁抛出 locked 错误）。
-3. **文件上传过滤**：限定文件上传大小最大为 10MB，上传内容基于文件 MD5 散列命名，避免文件名重复冲突。
+4. **文件上传过滤**：限定文件上传大小最大为 10MB，上传内容基于文件 MD5 散列命名，避免文件名重复冲突。
 
 ---
 

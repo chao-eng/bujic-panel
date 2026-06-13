@@ -5,11 +5,14 @@ import { cookies } from 'next/headers';
 import { passwordEncryption, signJWT, getCurrentUser } from '../lib/auth';
 import { revalidatePath } from 'next/cache';
 import crypto from 'crypto';
+import { decryptFromTransport } from '../lib/crypto';
 
 // 登录动作
 export async function loginAction(data: { username: string; password: string }) {
   const username = data.username.trim();
-  const encryptedPassword = passwordEncryption(data.password);
+  // 解密前端传来的加密密码，再做哈希（兼容未加密的旧请求）
+  const rawPassword = decryptFromTransport(data.password);
+  const encryptedPassword = passwordEncryption(rawPassword);
 
   const user = await db.user.findFirst({
     where: { username, password: encryptedPassword },
@@ -82,8 +85,11 @@ export async function updatePasswordAction(data: { oldPassword: string; newPassw
   const user = await getCurrentUser();
   if (!user) throw new Error('Unauthorized');
 
-  const oldEncrypted = passwordEncryption(data.oldPassword);
-  const newEncrypted = passwordEncryption(data.newPassword);
+  // 解密前端传来的加密密码
+  const rawOld = decryptFromTransport(data.oldPassword);
+  const rawNew = decryptFromTransport(data.newPassword);
+  const oldEncrypted = passwordEncryption(rawOld);
+  const newEncrypted = passwordEncryption(rawNew);
 
   const matched = await db.user.findFirst({
     where: { id: user.id, password: oldEncrypted },
@@ -200,7 +206,9 @@ export async function createUserAction(data: {
     }
   }
 
-  const defaultPassword = data.password ? passwordEncryption(data.password) : passwordEncryption('123456');
+  // 解密前端传来的加密密码
+  const rawPassword = data.password ? decryptFromTransport(data.password) : '123456';
+  const defaultPassword = passwordEncryption(rawPassword);
 
   const created = await db.user.create({
     data: {
@@ -245,7 +253,9 @@ export async function updateUserAction(data: {
   };
 
   if (data.password) {
-    updateData.password = passwordEncryption(data.password);
+    // 解密前端传来的加密密码
+    const rawPwd = decryptFromTransport(data.password);
+    updateData.password = passwordEncryption(rawPwd);
   }
 
   const updated = await db.user.update({

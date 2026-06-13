@@ -12,6 +12,7 @@ export async function proxy(request: NextRequest) {
     pathname.includes('.') || // 文件后缀
     pathname.startsWith('/login') ||
     pathname.startsWith('/api/openness') ||
+    pathname.startsWith('/api/crypto') ||  // 加密密钥端点，登录前即需访问
     pathname.startsWith('/uploads')
   ) {
     return NextResponse.next();

@@ -25,7 +25,7 @@ RUN pnpm exec tsc prisma/seed.ts --module commonjs --target es2020 --esModuleInt
 # 提取并解引用 Prisma CLI 及其二进制引擎，用于后续 Runner 运行迁移（避免使用 pnpm 符号链接）
 RUN mkdir -p /app/prisma-cli && \
     cp -rL /app/node_modules/prisma /app/prisma-cli/prisma && \
-    cp -rL /app/node_modules/@prisma/engines /app/prisma-cli/@prisma/engines
+    cp -rL /app/node_modules/.pnpm/node_modules/@prisma/engines /app/prisma-cli/@prisma/engines
 
 # 阶段 2: 运行阶段 (Runner)
 FROM node:22-alpine AS runner

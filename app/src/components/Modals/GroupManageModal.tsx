@@ -330,7 +330,7 @@ export default function GroupManageModal({
               </div>
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0 mt-5">
+            <DialogFooter className="gap-2 mt-5">
               <button
                 type="button"
                 onClick={handleCancelEdit}

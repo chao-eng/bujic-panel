@@ -367,7 +367,7 @@ export default function EditIconModal({
           </div>
 
           {/* 确认/取消 */}
-          <DialogFooter className="gap-2 sm:gap-0 mt-5">
+          <DialogFooter className="gap-2 mt-5">
             <button
               type="button"
               onClick={onClose}

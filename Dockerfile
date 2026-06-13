@@ -4,7 +4,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # 安装 pnpm
-RUN npm install -g pnpm
+RUN npm install -g pnpm@11.6.0
 
 # 复制依赖定义并安装 (包含开发依赖以进行打包构建)
 COPY app/package.json app/pnpm-lock.yaml app/pnpm-workspace.yaml ./

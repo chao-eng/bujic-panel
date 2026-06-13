@@ -106,7 +106,7 @@ export default function QbittorrentWidget({ title, stats, url, error, isLoading 
         </div>
 
         {isOnline && (
-          <div className="text-[10px] text-white/40 font-medium tracking-tight text-right flex items-center gap-3 mt-1.5">
+          <div className="text-[10px] text-white/40 font-medium tracking-tight text-right flex items-center gap-3 mt-1.5 transition-opacity duration-200 group-hover:opacity-0 pointer-events-none">
             <div className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span>下载中:</span>

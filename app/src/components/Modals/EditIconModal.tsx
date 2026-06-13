@@ -75,6 +75,19 @@ export default function EditIconModal({
   const [qbUsername, setQbUsername] = useState('');
   const [qbPassword, setQbPassword] = useState('');
 
+  // 胶囊 Tab 切换状态 (website | webpage)
+  const [activeGroupTab, setActiveGroupTab] = useState<'website' | 'webpage'>('website');
+
+  const filteredGroups = groups.filter((g) => g.groupType === activeGroupTab);
+
+  const handleTabChange = (tab: 'website' | 'webpage') => {
+    setActiveGroupTab(tab);
+    const tabGroups = groups.filter((g) => g.groupType === tab);
+    if (tabGroups.length > 0) {
+      setGroupId(tabGroups[0].id);
+    }
+  };
+
   // 抓取状态与上传状态
   const [isCrawling, setIsCrawling] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -90,6 +103,12 @@ export default function EditIconModal({
       setOpenMethod(editingIcon.openMethod);
       setPinned(editingIcon.pinned);
       setGroupId(editingIcon.itemIconGroupId);
+      
+      const groupInfo = groups.find((g) => g.id === editingIcon.itemIconGroupId);
+      if (groupInfo) {
+        setActiveGroupTab(groupInfo.groupType as 'website' | 'webpage');
+      }
+
       setIconSrc(editingIcon.icon.src || 'lucide:globe');
       setIconType(editingIcon.icon.itemType || 1);
       setWidgetType(editingIcon.widgetType || '');
@@ -128,7 +147,16 @@ export default function EditIconModal({
       setDescription('');
       setOpenMethod(1);
       setPinned(false);
-      setGroupId(activeGroupId || (groups[0]?.id ?? 0));
+      
+      const defaultGroupId = activeGroupId || (groups[0]?.id ?? 0);
+      setGroupId(defaultGroupId);
+      const groupInfo = groups.find((g) => g.id === defaultGroupId);
+      if (groupInfo) {
+        setActiveGroupTab(groupInfo.groupType as 'website' | 'webpage');
+      } else if (groups.length > 0) {
+        setActiveGroupTab((groups[0]?.groupType || 'website') as 'website' | 'webpage');
+      }
+
       setIconSrc('lucide:globe');
       setIconType(1);
       setWidgetType('');
@@ -260,7 +288,7 @@ export default function EditIconModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[480px] bg-[#12131a]/95 border border-white/5 text-white/90 rounded-2xl backdrop-blur-xl">
+      <DialogContent aria-describedby={undefined} className="sm:max-w-[480px] bg-[#12131a]/95 border border-white/5 text-white/90 rounded-2xl backdrop-blur-xl">
         <DialogHeader>
           <DialogTitle className="font-heading text-lg font-bold text-white">
             {editingIcon ? t.editBookmark : t.addBookmark}
@@ -427,13 +455,36 @@ export default function EditIconModal({
           {/* 选择分组 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-white/60 text-xs font-medium">{t.group}</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-white/60 text-xs font-medium">{t.group}</Label>
+                {/* 胶囊 Tab 切换 */}
+                <div className="flex bg-white/5 p-0.5 rounded-lg border border-white/5 text-[10px] text-white/40">
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('website')}
+                    className={`px-2 py-0.5 rounded font-medium transition cursor-pointer ${
+                      activeGroupTab === 'website' ? 'bg-white/10 text-white font-semibold' : 'hover:text-white'
+                    }`}
+                  >
+                    {t.website}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('webpage')}
+                    className={`px-2 py-0.5 rounded font-medium transition cursor-pointer ${
+                      activeGroupTab === 'webpage' ? 'bg-white/10 text-white font-semibold' : 'hover:text-white'
+                    }`}
+                  >
+                    {t.webpage}
+                  </button>
+                </div>
+              </div>
               <select
                 value={groupId}
                 onChange={(e) => setGroupId(Number(e.target.value))}
                 className="w-full h-9 px-3 bg-white/5 border border-white/5 rounded-xl text-white outline-none focus:border-indigo-500/40 text-xs transition"
               >
-                {groups.map((g) => (
+                {filteredGroups.map((g) => (
                   <option key={g.id} value={g.id} className="bg-[#12131a] text-white">
                     {g.title}
                   </option>

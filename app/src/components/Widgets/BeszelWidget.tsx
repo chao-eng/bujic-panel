@@ -100,14 +100,11 @@ export default function BeszelWidget({ title, stats, url, error, isLoading }: Be
 
       {/* 底部指标区 */}
       {isOnline ? (
-        <div className="space-y-1.5 mt-3">
-          {/* CPU 进度条 */}
-          <div className="space-y-0.5">
-            <div className="flex justify-between text-[9px] text-white/40 font-medium">
-              <span>CPU</span>
-              <span className="font-mono text-white/80">{stats.cpu.toFixed(0)}%</span>
-            </div>
-            <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+        <div className="space-y-2 mt-3.5">
+          {/* CPU */}
+          <div className="flex items-center gap-2 text-[10px]">
+            <span className="w-7 text-white/40 font-medium flex-shrink-0 text-left">CPU</span>
+            <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
               <div 
                 className={`h-full rounded-full transition-all duration-500 ${
                   stats.cpu > 80 ? 'bg-gradient-to-r from-red-500 to-rose-600' :
@@ -117,15 +114,13 @@ export default function BeszelWidget({ title, stats, url, error, isLoading }: Be
                 style={{ width: `${Math.min(stats.cpu, 100)}%` }}
               />
             </div>
+            <span className="w-8 text-right font-mono text-white/70 flex-shrink-0">{stats.cpu.toFixed(0)}%</span>
           </div>
 
-          {/* 内存进度条 */}
-          <div className="space-y-0.5">
-            <div className="flex justify-between text-[9px] text-white/40 font-medium">
-              <span>内存</span>
-              <span className="font-mono text-white/80">{stats.memory.toFixed(0)}%</span>
-            </div>
-            <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+          {/* 内存 */}
+          <div className="flex items-center gap-2 text-[10px]">
+            <span className="w-7 text-white/40 font-medium flex-shrink-0 text-left">内存</span>
+            <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
               <div 
                 className={`h-full rounded-full transition-all duration-500 ${
                   stats.memory > 85 ? 'bg-gradient-to-r from-red-500 to-rose-600' :
@@ -135,6 +130,23 @@ export default function BeszelWidget({ title, stats, url, error, isLoading }: Be
                 style={{ width: `${Math.min(stats.memory, 100)}%` }}
               />
             </div>
+            <span className="w-8 text-right font-mono text-white/70 flex-shrink-0">{stats.memory.toFixed(0)}%</span>
+          </div>
+
+          {/* 磁盘 */}
+          <div className="flex items-center gap-2 text-[10px]">
+            <span className="w-7 text-white/40 font-medium flex-shrink-0 text-left">磁盘</span>
+            <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-500 ${
+                  stats.disk > 90 ? 'bg-gradient-to-r from-red-500 to-rose-600' :
+                  stats.disk > 75 ? 'bg-gradient-to-r from-amber-500 to-orange-500' :
+                  'bg-gradient-to-r from-indigo-500 to-purple-500'
+                }`}
+                style={{ width: `${Math.min(stats.disk, 100)}%` }}
+              />
+            </div>
+            <span className="w-8 text-right font-mono text-white/70 flex-shrink-0">{stats.disk.toFixed(0)}%</span>
           </div>
         </div>
       ) : (

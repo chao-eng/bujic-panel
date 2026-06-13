@@ -19,6 +19,7 @@ import { Pin, ExternalLink, Edit2, Trash2 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useTranslation } from './I18nProvider';
 import BeszelWidget from './Widgets/BeszelWidget';
+import QbittorrentWidget, { formatSpeed } from './Widgets/QbittorrentWidget';
 
 // 动态图标解析器
 export function DynamicIcon({ name, className, size = 18 }: { name: string; className?: string; size?: number }) {
@@ -170,17 +171,37 @@ function SortableItem({
             {isWidget && (
               <div className="flex items-center gap-4 text-[10px] text-white/50 bg-white/5 px-3 py-1 rounded-lg border border-white/5">
                 {statsObj?.success ? (
-                  statsObj.data.status === 'up' ? (
-                    <>
-                      <span className="flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        在线
-                      </span>
-                      <span>CPU: <span className="font-mono text-white/80">{statsObj.data.cpu.toFixed(0)}%</span></span>
-                      <span>内存: <span className="font-mono text-white/80">{statsObj.data.memory.toFixed(0)}%</span></span>
-                    </>
+                  iconItem.widgetType === 'beszel' ? (
+                    statsObj.data.status === 'up' ? (
+                      <>
+                        <span className="flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          在线
+                        </span>
+                        <span>CPU: <span className="font-mono text-white/80">{statsObj.data.cpu.toFixed(0)}%</span></span>
+                        <span>内存: <span className="font-mono text-white/80">{statsObj.data.memory.toFixed(0)}%</span></span>
+                      </>
+                    ) : (
+                      <span className="text-white/30">服务器离线</span>
+                    )
+                  ) : iconItem.widgetType === 'qbittorrent' ? (
+                    statsObj.data.status === 'connected' || statsObj.data.status === 'online' || statsObj.data.status === 'firewalled' ? (
+                      <>
+                        <span className="flex items-center gap-1">
+                          <span className={`w-1.5 h-1.5 rounded-full ${statsObj.data.status === 'firewalled' ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`} />
+                          {statsObj.data.status === 'firewalled' ? '限流' : '在线'}
+                        </span>
+                        <span className="text-emerald-400 font-bold">↓ {formatSpeed(statsObj.data.dlSpeed)}</span>
+                        <span className="text-indigo-300 font-bold">↑ {formatSpeed(statsObj.data.upSpeed)}</span>
+                        <span className="text-white/30">|</span>
+                        <span>下载中: <span className="font-mono text-emerald-400 font-semibold">{statsObj.data.downloadingCount ?? 0}</span></span>
+                        <span>已完成: <span className="font-mono text-indigo-300 font-semibold">{statsObj.data.completedCount ?? 0}</span></span>
+                      </>
+                    ) : (
+                      <span className="text-white/30">未连接</span>
+                    )
                   ) : (
-                    <span className="text-white/30">服务器离线</span>
+                    <span className="text-white/30">就绪</span>
                   )
                 ) : (
                   <span className="text-red-400/80 truncate max-w-[150px]">
@@ -218,6 +239,7 @@ function SortableItem({
 
   // 网站模式：监控组件或者普通书签卡片
   const statsObj = widgetsStats?.[iconItem.id];
+  const isWidget = !!iconItem.widgetType;
 
   return (
     <div
@@ -226,7 +248,9 @@ function SortableItem({
       {...attributes}
       {...listeners}
       onClick={handleClick}
-      className="glass-panel glow-effect relative flex flex-col p-5 rounded-2xl cursor-pointer hover:-translate-y-1.5 group select-none h-32 active:scale-97"
+      className={`glass-panel glow-effect relative flex flex-col p-5 rounded-2xl cursor-pointer hover:-translate-y-1.5 group select-none h-32 active:scale-97 ${
+        isWidget ? 'col-span-2' : ''
+      }`}
     >
       {/* 鼠标悬浮显现操作面板 */}
       <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
@@ -251,6 +275,14 @@ function SortableItem({
 
       {iconItem.widgetType === 'beszel' ? (
         <BeszelWidget
+          title={iconItem.title}
+          stats={statsObj?.data}
+          url={iconItem.url}
+          error={statsObj?.success === false ? statsObj.error : undefined}
+          isLoading={!!isWidgetsLoading}
+        />
+      ) : iconItem.widgetType === 'qbittorrent' ? (
+        <QbittorrentWidget
           title={iconItem.title}
           stats={statsObj?.data}
           url={iconItem.url}

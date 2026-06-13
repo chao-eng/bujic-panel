@@ -72,6 +72,8 @@ export default function EditIconModal({
   const [beszelEmail, setBeszelEmail] = useState('');
   const [beszelPassword, setBeszelPassword] = useState('');
   const [beszelSystemName, setBeszelSystemName] = useState('');
+  const [qbUsername, setQbUsername] = useState('');
+  const [qbPassword, setQbPassword] = useState('');
 
   // 抓取状态与上传状态
   const [isCrawling, setIsCrawling] = useState(false);
@@ -93,13 +95,31 @@ export default function EditIconModal({
       setWidgetType(editingIcon.widgetType || '');
       try {
         const settings = JSON.parse(editingIcon.widgetSettings || '{}');
-        setBeszelEmail(settings.email || '');
-        setBeszelPassword(settings.password || '');
-        setBeszelSystemName(settings.systemName || '');
+        if (editingIcon.widgetType === 'beszel') {
+          setBeszelEmail(settings.email || '');
+          setBeszelPassword(settings.password || '');
+          setBeszelSystemName(settings.systemName || '');
+          setQbUsername('');
+          setQbPassword('');
+        } else if (editingIcon.widgetType === 'qbittorrent') {
+          setQbUsername(settings.username || '');
+          setQbPassword(settings.password || '');
+          setBeszelEmail('');
+          setBeszelPassword('');
+          setBeszelSystemName('');
+        } else {
+          setBeszelEmail('');
+          setBeszelPassword('');
+          setBeszelSystemName('');
+          setQbUsername('');
+          setQbPassword('');
+        }
       } catch (e) {
         setBeszelEmail('');
         setBeszelPassword('');
         setBeszelSystemName('');
+        setQbUsername('');
+        setQbPassword('');
       }
     } else {
       setTitle('');
@@ -115,6 +135,8 @@ export default function EditIconModal({
       setBeszelEmail('');
       setBeszelPassword('');
       setBeszelSystemName('');
+      setQbUsername('');
+      setQbPassword('');
     }
     setErrorMsg('');
   }, [editingIcon, isOpen, activeGroupId, groups]);
@@ -209,6 +231,11 @@ export default function EditIconModal({
             password: beszelPassword,
             systemName: beszelSystemName,
           };
+        } else if (widgetType === 'qbittorrent') {
+          settingsObj = {
+            username: qbUsername,
+            password: qbPassword,
+          };
         }
         const saved = await editItemIconAction({
           id: editingIcon?.id,
@@ -256,27 +283,31 @@ export default function EditIconModal({
                 const type = e.target.value;
                 setWidgetType(type);
                 if (type === 'beszel') {
-                  if (!url) setUrl('http://localhost:8090');
+                  if (!url || url.includes('example.com') || url.includes('8080')) setUrl('http://localhost:8090');
                   setIconSrc('lucide:server');
+                } else if (type === 'qbittorrent') {
+                  if (!url || url.includes('example.com') || url.includes('8090')) setUrl('http://localhost:8080');
+                  setIconSrc('lucide:download-cloud');
                 }
               }}
               className="w-full h-9 px-3 bg-white/5 border border-white/5 rounded-xl text-white outline-none focus:border-indigo-500/40 text-xs transition"
             >
               <option value="" className="bg-[#12131a] text-white">普通链接</option>
               <option value="beszel" className="bg-[#12131a] text-white">监控组件 (Beszel)</option>
+              <option value="qbittorrent" className="bg-[#12131a] text-white">监控组件 (qBittorrent)</option>
             </select>
           </div>
 
           {/* 目标链接 */}
           <div className="space-y-1.5">
             <Label className="text-white/60 text-xs font-medium">
-              {widgetType === 'beszel' ? 'Beszel Hub 地址' : t.url}
+              {widgetType === 'beszel' ? 'Beszel Hub 地址' : widgetType === 'qbittorrent' ? 'qBittorrent 地址' : t.url}
             </Label>
             <div className="flex gap-2">
               <Input
                 type="url"
                 required
-                placeholder={widgetType === 'beszel' ? 'http://localhost:8090' : 'https://example.com'}
+                placeholder={widgetType === 'beszel' ? 'http://localhost:8090' : widgetType === 'qbittorrent' ? 'http://localhost:8080' : 'https://example.com'}
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 className="flex-1 bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20"
@@ -333,6 +364,35 @@ export default function EditIconModal({
                   placeholder="如: My Server 或 localhost"
                   value={beszelSystemName}
                   onChange={(e) => setBeszelSystemName(e.target.value)}
+                  className="bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20 text-xs"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* qBittorrent 特定连接配置 */}
+          {widgetType === 'qbittorrent' && (
+            <div className="space-y-3 p-3.5 rounded-xl border border-white/5 bg-white/5 animate-fade-in">
+              <h5 className="text-xs font-bold text-indigo-400">qBittorrent 连接配置</h5>
+              <div className="space-y-1.5">
+                <Label className="text-white/60 text-[10px] font-medium">用户名 (Username)</Label>
+                <Input
+                  type="text"
+                  required
+                  placeholder="admin"
+                  value={qbUsername}
+                  onChange={(e) => setQbUsername(e.target.value)}
+                  className="bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20 text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-white/60 text-[10px] font-medium">密码 (Password)</Label>
+                <Input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={qbPassword}
+                  onChange={(e) => setQbPassword(e.target.value)}
                   className="bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20 text-xs"
                 />
               </div>

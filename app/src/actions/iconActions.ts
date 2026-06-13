@@ -50,6 +50,8 @@ export async function editItemIconAction(data: {
   itemIconGroupId: number;
   icon?: { itemType: number; src: string };
   sort?: number;
+  widgetType?: string;
+  widgetSettings?: string;
 }) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Unauthorized');
@@ -58,12 +60,13 @@ export async function editItemIconAction(data: {
     throw new Error('Group is mandatory');
   }
 
-  // 1. URL 查重
-  if (data.url) {
+  // 1. URL 查重 (监控组件允许配置重复连接，只对普通书签进行查重)
+  if (data.url && !data.widgetType) {
     const existing = await db.itemIcon.findFirst({
       where: {
         url: data.url,
         userId: user.id,
+        widgetType: '', // 只与普通书签进行重复校验
         ...(data.id ? { id: { not: data.id } } : {}),
       },
     });
@@ -88,6 +91,8 @@ export async function editItemIconAction(data: {
         pinned: data.pinned ?? false,
         itemIconGroupId: data.itemIconGroupId,
         iconJson,
+        widgetType: data.widgetType ?? '',
+        widgetSettings: data.widgetSettings ?? '{}',
         ...(data.sort !== undefined ? { sort: data.sort } : {}),
       },
     });
@@ -105,6 +110,8 @@ export async function editItemIconAction(data: {
         pinned: data.pinned ?? false,
         itemIconGroupId: data.itemIconGroupId,
         iconJson,
+        widgetType: data.widgetType ?? '',
+        widgetSettings: data.widgetSettings ?? '{}',
         sort: data.sort ?? 9999,
         userId: user.id,
       },

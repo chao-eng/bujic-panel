@@ -34,6 +34,8 @@ interface ItemIconType {
   itemIconGroupId: number;
   sort: number;
   icon: { itemType: number; src: string };
+  widgetType?: string;
+  widgetSettings?: string;
 }
 
 interface EditIconModalProps {
@@ -66,6 +68,10 @@ export default function EditIconModal({
   const [groupId, setGroupId] = useState(activeGroupId);
   const [iconSrc, setIconSrc] = useState('lucide:globe');
   const [iconType, setIconType] = useState(1);
+  const [widgetType, setWidgetType] = useState('');
+  const [beszelEmail, setBeszelEmail] = useState('');
+  const [beszelPassword, setBeszelPassword] = useState('');
+  const [beszelSystemName, setBeszelSystemName] = useState('');
 
   // 抓取状态与上传状态
   const [isCrawling, setIsCrawling] = useState(false);
@@ -84,6 +90,17 @@ export default function EditIconModal({
       setGroupId(editingIcon.itemIconGroupId);
       setIconSrc(editingIcon.icon.src || 'lucide:globe');
       setIconType(editingIcon.icon.itemType || 1);
+      setWidgetType(editingIcon.widgetType || '');
+      try {
+        const settings = JSON.parse(editingIcon.widgetSettings || '{}');
+        setBeszelEmail(settings.email || '');
+        setBeszelPassword(settings.password || '');
+        setBeszelSystemName(settings.systemName || '');
+      } catch (e) {
+        setBeszelEmail('');
+        setBeszelPassword('');
+        setBeszelSystemName('');
+      }
     } else {
       setTitle('');
       setUrl('');
@@ -94,6 +111,10 @@ export default function EditIconModal({
       setGroupId(activeGroupId || (groups[0]?.id ?? 0));
       setIconSrc('lucide:globe');
       setIconType(1);
+      setWidgetType('');
+      setBeszelEmail('');
+      setBeszelPassword('');
+      setBeszelSystemName('');
     }
     setErrorMsg('');
   }, [editingIcon, isOpen, activeGroupId, groups]);
@@ -181,6 +202,14 @@ export default function EditIconModal({
 
     startTransition(async () => {
       try {
+        let settingsObj: any = {};
+        if (widgetType === 'beszel') {
+          settingsObj = {
+            email: beszelEmail,
+            password: beszelPassword,
+            systemName: beszelSystemName,
+          };
+        }
         const saved = await editItemIconAction({
           id: editingIcon?.id,
           title,
@@ -191,6 +220,8 @@ export default function EditIconModal({
           pinned,
           itemIconGroupId: Number(groupId),
           icon: { itemType: iconType, src: iconSrc },
+          widgetType,
+          widgetSettings: JSON.stringify(settingsObj),
         });
         onSave(saved);
         onClose();
@@ -216,33 +247,97 @@ export default function EditIconModal({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+          {/* 书签模式 */}
+          <div className="space-y-1.5">
+            <Label className="text-white/60 text-xs font-medium">书签模式</Label>
+            <select
+              value={widgetType}
+              onChange={(e) => {
+                const type = e.target.value;
+                setWidgetType(type);
+                if (type === 'beszel') {
+                  if (!url) setUrl('http://localhost:8090');
+                  setIconSrc('lucide:server');
+                }
+              }}
+              className="w-full h-9 px-3 bg-white/5 border border-white/5 rounded-xl text-white outline-none focus:border-indigo-500/40 text-xs transition"
+            >
+              <option value="" className="bg-[#12131a] text-white">普通链接</option>
+              <option value="beszel" className="bg-[#12131a] text-white">监控组件 (Beszel)</option>
+            </select>
+          </div>
+
           {/* 目标链接 */}
           <div className="space-y-1.5">
-            <Label className="text-white/60 text-xs font-medium">{t.url}</Label>
+            <Label className="text-white/60 text-xs font-medium">
+              {widgetType === 'beszel' ? 'Beszel Hub 地址' : t.url}
+            </Label>
             <div className="flex gap-2">
               <Input
                 type="url"
                 required
-                placeholder="https://example.com"
+                placeholder={widgetType === 'beszel' ? 'http://localhost:8090' : 'https://example.com'}
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 className="flex-1 bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20"
               />
-              <button
-                type="button"
-                onClick={handleAutoFetch}
-                disabled={isCrawling || !url.trim()}
-                className="flex items-center gap-1.5 px-3 py-2 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 disabled:pointer-events-none rounded-xl text-xs font-medium text-white transition active:scale-95 shadow-md shadow-indigo-500/20 cursor-pointer"
-              >
-                {isCrawling ? (
-                  <Loader2 size={13} className="animate-spin" />
-                ) : (
-                  <Sparkles size={13} />
-                )}
-                <span>{t.fetchTitleAndIcon}</span>
-              </button>
+              {widgetType === '' && (
+                <button
+                  type="button"
+                  onClick={handleAutoFetch}
+                  disabled={isCrawling || !url.trim()}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 disabled:pointer-events-none rounded-xl text-xs font-medium text-white transition active:scale-95 shadow-md shadow-indigo-500/20 cursor-pointer"
+                >
+                  {isCrawling ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <Sparkles size={13} />
+                  )}
+                  <span>{t.fetchTitleAndIcon}</span>
+                </button>
+              )}
             </div>
           </div>
+
+          {/* Beszel 特定连接配置 */}
+          {widgetType === 'beszel' && (
+            <div className="space-y-3 p-3.5 rounded-xl border border-white/5 bg-white/5 animate-fade-in">
+              <h5 className="text-xs font-bold text-indigo-400">Beszel 连接凭证</h5>
+              <div className="space-y-1.5">
+                <Label className="text-white/60 text-[10px] font-medium">管理员邮箱 (Email)</Label>
+                <Input
+                  type="email"
+                  required
+                  placeholder="admin@example.com"
+                  value={beszelEmail}
+                  onChange={(e) => setBeszelEmail(e.target.value)}
+                  className="bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20 text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-white/60 text-[10px] font-medium">管理员密码 (Password)</Label>
+                <Input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={beszelPassword}
+                  onChange={(e) => setBeszelPassword(e.target.value)}
+                  className="bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20 text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-white/60 text-[10px] font-medium">监控系统名称 (System Name)</Label>
+                <Input
+                  type="text"
+                  required
+                  placeholder="如: My Server 或 localhost"
+                  value={beszelSystemName}
+                  onChange={(e) => setBeszelSystemName(e.target.value)}
+                  className="bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20 text-xs"
+                />
+              </div>
+            </div>
+          )}
 
           {/* 标题 */}
           <div className="space-y-1.5">

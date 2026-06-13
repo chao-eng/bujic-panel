@@ -58,6 +58,10 @@ model ItemIcon {
   itemIconGroupId Int      @map("item_icon_group_id")
   userId          Int      @map("user_id")
 
+  // === Widget Fields ===
+  widgetType      String   @default("") @map("widget_type")
+  widgetSettings  String   @default("{}") @map("widget_settings")
+
   // 外键关联定义
   user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   group ItemIconGroup @relation(fields: [itemIconGroupId], references: [id], onDelete: Cascade)

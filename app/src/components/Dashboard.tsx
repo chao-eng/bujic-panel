@@ -45,6 +45,8 @@ interface ItemIconType {
   itemIconGroupId: number;
   sort: number;
   icon: { itemType: number; src: string };
+  widgetType?: string;
+  widgetSettings?: string;
 }
 
 interface DashboardProps {
@@ -102,6 +104,49 @@ export default function Dashboard({
       }
     } catch {}
   }, []);
+
+  // 监控数据状态
+  const [widgetsStats, setWidgetsStats] = useState<Record<number, any>>({});
+  const [isWidgetsLoading, setIsWidgetsLoading] = useState(false);
+
+  // 监控数据周期轮询
+  useEffect(() => {
+    const widgetIds = icons
+      .filter((icon) => icon.widgetType)
+      .map((icon) => icon.id);
+
+    if (widgetIds.length === 0) {
+      setWidgetsStats({});
+      return;
+    }
+
+    let timer: NodeJS.Timeout;
+
+    const fetchStats = async (showLoading = false) => {
+      if (showLoading) setIsWidgetsLoading(true);
+      try {
+        const res = await fetch(`/api/widgets/stats?ids=${widgetIds.join(',')}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.code === 0) {
+            setWidgetsStats(json.data);
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching widget stats:', e);
+      } finally {
+        if (showLoading) setIsWidgetsLoading(false);
+      }
+    };
+
+    fetchStats(true);
+
+    timer = setInterval(() => {
+      fetchStats(false);
+    }, 10000);
+
+    return () => clearInterval(timer);
+  }, [icons]);
 
   const toggleGroupCollapse = (id: number) => {
     setCollapsedGroups((prev) => {
@@ -475,6 +520,8 @@ export default function Dashboard({
                       onReorder={(reordered) => handleReorderIcons(group.id, reordered)}
                       onEdit={handleEditIcon}
                       onDelete={handleDeleteIcon}
+                      widgetsStats={widgetsStats}
+                      isWidgetsLoading={isWidgetsLoading}
                     />
                   )}
                 </div>

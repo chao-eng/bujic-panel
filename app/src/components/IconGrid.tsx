@@ -20,6 +20,7 @@ import * as Icons from 'lucide-react';
 import { useTranslation } from './I18nProvider';
 import BeszelWidget from './Widgets/BeszelWidget';
 import QbittorrentWidget, { formatSpeed } from './Widgets/QbittorrentWidget';
+import JellyfinWidget from './Widgets/JellyfinWidget';
 
 // 动态图标解析器
 export function DynamicIcon({ name, className, size = 18 }: { name: string; className?: string; size?: number }) {
@@ -200,6 +201,24 @@ function SortableItem({
                     ) : (
                       <span className="text-white/30">未连接</span>
                     )
+                  ) : iconItem.widgetType === 'jellyfin' ? (
+                    <>
+                      <span className="flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        在线
+                      </span>
+                      <span>电影: <span className="font-mono text-white/80">{statsObj.data.moviesCount}</span></span>
+                      <span>系列: <span className="font-mono text-white/80">{statsObj.data.seriesCount}</span></span>
+                      <span>剧集: <span className="font-mono text-white/80">{statsObj.data.episodesCount}</span></span>
+                      {statsObj.data.nowPlaying && statsObj.data.nowPlaying.length > 0 && (
+                        <>
+                          <span className="text-white/30">|</span>
+                          <span className="text-emerald-400 flex items-center gap-1">
+                            播放中 ({statsObj.data.nowPlaying.length})
+                          </span>
+                        </>
+                      )}
+                    </>
                   ) : (
                     <span className="text-white/30">就绪</span>
                   )
@@ -285,6 +304,14 @@ function SortableItem({
         />
       ) : iconItem.widgetType === 'qbittorrent' ? (
         <QbittorrentWidget
+          title={iconItem.title}
+          stats={statsObj?.data}
+          url={iconItem.url}
+          error={statsObj?.success === false ? statsObj.error : undefined}
+          isLoading={!!isWidgetsLoading}
+        />
+      ) : iconItem.widgetType === 'jellyfin' ? (
+        <JellyfinWidget
           title={iconItem.title}
           stats={statsObj?.data}
           url={iconItem.url}

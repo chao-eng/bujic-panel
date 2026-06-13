@@ -74,6 +74,7 @@ export default function EditIconModal({
   const [beszelSystemName, setBeszelSystemName] = useState('');
   const [qbUsername, setQbUsername] = useState('');
   const [qbPassword, setQbPassword] = useState('');
+  const [jellyfinApiKey, setJellyfinApiKey] = useState('');
 
   // 胶囊 Tab 切换状态 (website | webpage)
   const [activeGroupTab, setActiveGroupTab] = useState<'website' | 'webpage'>('website');
@@ -103,7 +104,7 @@ export default function EditIconModal({
       setOpenMethod(editingIcon.openMethod);
       setPinned(editingIcon.pinned);
       const groupInfo = groups.find((g) => g.id === editingIcon.itemIconGroupId);
-      if (editingIcon.widgetType === 'beszel' || editingIcon.widgetType === 'qbittorrent') {
+      if (editingIcon.widgetType === 'beszel' || editingIcon.widgetType === 'qbittorrent' || editingIcon.widgetType === 'jellyfin') {
         setActiveGroupTab('website');
         if (groupInfo && groupInfo.groupType !== 'website') {
           const firstWebsiteGroup = groups.find((g) => g.groupType === 'website');
@@ -133,18 +134,28 @@ export default function EditIconModal({
           setBeszelSystemName(settings.systemName || '');
           setQbUsername('');
           setQbPassword('');
+          setJellyfinApiKey('');
         } else if (editingIcon.widgetType === 'qbittorrent') {
           setQbUsername(settings.username || '');
           setQbPassword(settings.password || '');
           setBeszelEmail('');
           setBeszelPassword('');
           setBeszelSystemName('');
+          setJellyfinApiKey('');
+        } else if (editingIcon.widgetType === 'jellyfin') {
+          setJellyfinApiKey(settings.apiKey || '');
+          setBeszelEmail('');
+          setBeszelPassword('');
+          setBeszelSystemName('');
+          setQbUsername('');
+          setQbPassword('');
         } else {
           setBeszelEmail('');
           setBeszelPassword('');
           setBeszelSystemName('');
           setQbUsername('');
           setQbPassword('');
+          setJellyfinApiKey('');
         }
       } catch (e) {
         setBeszelEmail('');
@@ -152,6 +163,7 @@ export default function EditIconModal({
         setBeszelSystemName('');
         setQbUsername('');
         setQbPassword('');
+        setJellyfinApiKey('');
       }
     } else {
       setTitle('');
@@ -178,6 +190,7 @@ export default function EditIconModal({
       setBeszelSystemName('');
       setQbUsername('');
       setQbPassword('');
+      setJellyfinApiKey('');
     }
     setErrorMsg('');
   }, [editingIcon, isOpen, activeGroupId, groups]);
@@ -277,6 +290,10 @@ export default function EditIconModal({
             username: qbUsername,
             password: qbPassword,
           };
+        } else if (widgetType === 'jellyfin') {
+          settingsObj = {
+            apiKey: jellyfinApiKey,
+          };
         }
         const saved = await editItemIconAction({
           id: editingIcon?.id,
@@ -324,12 +341,16 @@ export default function EditIconModal({
                 const type = e.target.value;
                 setWidgetType(type);
                 if (type === 'beszel') {
-                  if (!url || url.includes('example.com') || url.includes('8080')) setUrl('http://localhost:8090');
+                  if (!url || url.includes('example.com') || url.includes('8080') || url.includes('8096')) setUrl('http://localhost:8090');
                   setIconSrc('lucide:server');
                   handleTabChange('website');
                 } else if (type === 'qbittorrent') {
-                  if (!url || url.includes('example.com') || url.includes('8090')) setUrl('http://localhost:8080');
+                  if (!url || url.includes('example.com') || url.includes('8090') || url.includes('8096')) setUrl('http://localhost:8080');
                   setIconSrc('lucide:download-cloud');
+                  handleTabChange('website');
+                } else if (type === 'jellyfin') {
+                  if (!url || url.includes('example.com') || url.includes('8090') || url.includes('8080')) setUrl('http://localhost:8096');
+                  setIconSrc('lucide:video');
                   handleTabChange('website');
                 }
               }}
@@ -338,6 +359,7 @@ export default function EditIconModal({
               <option value="" className="bg-[#12131a] text-white">普通链接</option>
               <option value="beszel" className="bg-[#12131a] text-white">监控组件 (Beszel)</option>
               <option value="qbittorrent" className="bg-[#12131a] text-white">监控组件 (qBittorrent)</option>
+              <option value="jellyfin" className="bg-[#12131a] text-white">监控组件 (Jellyfin)</option>
             </select>
           </div>
 
@@ -350,7 +372,15 @@ export default function EditIconModal({
               <Input
                 type="url"
                 required
-                placeholder={widgetType === 'beszel' ? 'http://localhost:8090' : widgetType === 'qbittorrent' ? 'http://localhost:8080' : 'https://example.com'}
+                placeholder={
+                  widgetType === 'beszel'
+                    ? 'http://localhost:8090'
+                    : widgetType === 'qbittorrent'
+                    ? 'http://localhost:8080'
+                    : widgetType === 'jellyfin'
+                    ? 'http://localhost:8096'
+                    : 'https://example.com'
+                }
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 className="flex-1 bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20"
@@ -442,6 +472,24 @@ export default function EditIconModal({
             </div>
           )}
 
+          {/* Jellyfin 特定连接配置 */}
+          {widgetType === 'jellyfin' && (
+            <div className="space-y-3 p-3.5 rounded-xl border border-white/5 bg-white/5 animate-fade-in">
+              <h5 className="text-xs font-bold text-indigo-400">Jellyfin 连接配置</h5>
+              <div className="space-y-1.5">
+                <Label className="text-white/60 text-[10px] font-medium">API 密钥 (API Key)</Label>
+                <Input
+                  type="password"
+                  required
+                  placeholder="输入 Jellyfin API 密钥"
+                  value={jellyfinApiKey}
+                  onChange={(e) => setJellyfinApiKey(e.target.value)}
+                  className="bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20 text-xs"
+                />
+              </div>
+            </div>
+          )}
+
           {/* 标题 */}
           <div className="space-y-1.5">
             <Label className="text-white/60 text-xs font-medium">{t.title}</Label>
@@ -485,10 +533,10 @@ export default function EditIconModal({
                   </button>
                   <button
                     type="button"
-                    disabled={widgetType === 'beszel' || widgetType === 'qbittorrent'}
+                    disabled={widgetType === 'beszel' || widgetType === 'qbittorrent' || widgetType === 'jellyfin'}
                     onClick={() => handleTabChange('webpage')}
                     className={`px-2 py-0.5 rounded font-medium transition ${
-                      widgetType === 'beszel' || widgetType === 'qbittorrent'
+                      widgetType === 'beszel' || widgetType === 'qbittorrent' || widgetType === 'jellyfin'
                         ? 'opacity-30 cursor-not-allowed'
                         : 'cursor-pointer hover:text-white'
                     } ${

@@ -92,7 +92,7 @@ export default function BeszelWidget({ title, stats, url, error, isLoading }: Be
         </div>
         
         {isOnline && stats.uptime > 0 && (
-          <span className="text-[9px] text-white/30 font-mono tracking-tighter" title={`系统运行时间: ${stats.uptime} 秒`}>
+          <span className="text-[9px] text-white/30 font-mono tracking-tighter transition-opacity duration-200 group-hover:opacity-0 pointer-events-none" title={`系统运行时间: ${stats.uptime} 秒`}>
             {formatUptime(stats.uptime)}
           </span>
         )}

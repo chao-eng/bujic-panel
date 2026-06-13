@@ -75,6 +75,9 @@ export default function EditIconModal({
   const [qbUsername, setQbUsername] = useState('');
   const [qbPassword, setQbPassword] = useState('');
   const [jellyfinApiKey, setJellyfinApiKey] = useState('');
+  const [umamiUsername, setUmamiUsername] = useState('');
+  const [umamiPassword, setUmamiPassword] = useState('');
+  const [umamiDomain, setUmamiDomain] = useState('');
 
   // 胶囊 Tab 切换状态 (website | webpage)
   const [activeGroupTab, setActiveGroupTab] = useState<'website' | 'webpage'>('website');
@@ -104,7 +107,7 @@ export default function EditIconModal({
       setOpenMethod(editingIcon.openMethod);
       setPinned(editingIcon.pinned);
       const groupInfo = groups.find((g) => g.id === editingIcon.itemIconGroupId);
-      if (editingIcon.widgetType === 'beszel' || editingIcon.widgetType === 'qbittorrent' || editingIcon.widgetType === 'jellyfin') {
+      if (editingIcon.widgetType === 'beszel' || editingIcon.widgetType === 'qbittorrent' || editingIcon.widgetType === 'jellyfin' || editingIcon.widgetType === 'umami') {
         setActiveGroupTab('website');
         if (groupInfo && groupInfo.groupType !== 'website') {
           const firstWebsiteGroup = groups.find((g) => g.groupType === 'website');
@@ -135,6 +138,9 @@ export default function EditIconModal({
           setQbUsername('');
           setQbPassword('');
           setJellyfinApiKey('');
+          setUmamiUsername('');
+          setUmamiPassword('');
+          setUmamiDomain('');
         } else if (editingIcon.widgetType === 'qbittorrent') {
           setQbUsername(settings.username || '');
           setQbPassword(settings.password || '');
@@ -142,6 +148,9 @@ export default function EditIconModal({
           setBeszelPassword('');
           setBeszelSystemName('');
           setJellyfinApiKey('');
+          setUmamiUsername('');
+          setUmamiPassword('');
+          setUmamiDomain('');
         } else if (editingIcon.widgetType === 'jellyfin') {
           setJellyfinApiKey(settings.apiKey || '');
           setBeszelEmail('');
@@ -149,6 +158,19 @@ export default function EditIconModal({
           setBeszelSystemName('');
           setQbUsername('');
           setQbPassword('');
+          setUmamiUsername('');
+          setUmamiPassword('');
+          setUmamiDomain('');
+        } else if (editingIcon.widgetType === 'umami') {
+          setUmamiUsername(settings.username || '');
+          setUmamiPassword(settings.password || '');
+          setUmamiDomain(settings.domain || '');
+          setBeszelEmail('');
+          setBeszelPassword('');
+          setBeszelSystemName('');
+          setQbUsername('');
+          setQbPassword('');
+          setJellyfinApiKey('');
         } else {
           setBeszelEmail('');
           setBeszelPassword('');
@@ -156,6 +178,9 @@ export default function EditIconModal({
           setQbUsername('');
           setQbPassword('');
           setJellyfinApiKey('');
+          setUmamiUsername('');
+          setUmamiPassword('');
+          setUmamiDomain('');
         }
       } catch (e) {
         setBeszelEmail('');
@@ -164,6 +189,9 @@ export default function EditIconModal({
         setQbUsername('');
         setQbPassword('');
         setJellyfinApiKey('');
+        setUmamiUsername('');
+        setUmamiPassword('');
+        setUmamiDomain('');
       }
     } else {
       setTitle('');
@@ -191,6 +219,9 @@ export default function EditIconModal({
       setQbUsername('');
       setQbPassword('');
       setJellyfinApiKey('');
+      setUmamiUsername('');
+      setUmamiPassword('');
+      setUmamiDomain('');
     }
     setErrorMsg('');
   }, [editingIcon, isOpen, activeGroupId, groups]);
@@ -294,6 +325,12 @@ export default function EditIconModal({
           settingsObj = {
             apiKey: jellyfinApiKey,
           };
+        } else if (widgetType === 'umami') {
+          settingsObj = {
+            username: umamiUsername,
+            password: umamiPassword,
+            domain: umamiDomain,
+          };
         }
         const saved = await editItemIconAction({
           id: editingIcon?.id,
@@ -352,6 +389,10 @@ export default function EditIconModal({
                   if (!url || url.includes('example.com') || url.includes('8090') || url.includes('8080')) setUrl('http://localhost:8096');
                   setIconSrc('lucide:video');
                   handleTabChange('website');
+                } else if (type === 'umami') {
+                  if (!url || url.includes('example.com') || url.includes('8090') || url.includes('8080') || url.includes('8096')) setUrl('http://localhost:3000');
+                  setIconSrc('lucide:bar-chart-3');
+                  handleTabChange('website');
                 }
               }}
               className="w-full h-9 px-3 bg-white/5 border border-white/5 rounded-xl text-white outline-none focus:border-indigo-500/40 text-xs transition"
@@ -360,13 +401,14 @@ export default function EditIconModal({
               <option value="beszel" className="bg-[#12131a] text-white">监控组件 (Beszel)</option>
               <option value="qbittorrent" className="bg-[#12131a] text-white">监控组件 (qBittorrent)</option>
               <option value="jellyfin" className="bg-[#12131a] text-white">监控组件 (Jellyfin)</option>
+              <option value="umami" className="bg-[#12131a] text-white">监控组件 (Umami)</option>
             </select>
           </div>
 
           {/* 目标链接 */}
           <div className="space-y-1.5">
             <Label className="text-white/60 text-xs font-medium">
-              {widgetType === 'beszel' ? 'Beszel Hub 地址' : widgetType === 'qbittorrent' ? 'qBittorrent 地址' : t.url}
+              {widgetType === 'beszel' ? 'Beszel Hub 地址' : widgetType === 'qbittorrent' ? 'qBittorrent 地址' : widgetType === 'umami' ? 'Umami 地址' : t.url}
             </Label>
             <div className="flex gap-2">
               <Input
@@ -379,6 +421,8 @@ export default function EditIconModal({
                     ? 'http://localhost:8080'
                     : widgetType === 'jellyfin'
                     ? 'http://localhost:8096'
+                    : widgetType === 'umami'
+                    ? 'http://localhost:3000'
                     : 'https://example.com'
                 }
                 value={url}
@@ -490,6 +534,46 @@ export default function EditIconModal({
             </div>
           )}
 
+          {/* Umami 特定连接配置 */}
+          {widgetType === 'umami' && (
+            <div className="space-y-3 p-3.5 rounded-xl border border-white/5 bg-white/5 animate-fade-in">
+              <h5 className="text-xs font-bold text-indigo-400">Umami 连接配置</h5>
+              <div className="space-y-1.5">
+                <Label className="text-white/60 text-[10px] font-medium">用户名 (Username)</Label>
+                <Input
+                  type="text"
+                  required
+                  placeholder="输入 Umami 用户名"
+                  value={umamiUsername}
+                  onChange={(e) => setUmamiUsername(e.target.value)}
+                  className="bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20 text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-white/60 text-[10px] font-medium">密码 (Password)</Label>
+                <Input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={umamiPassword}
+                  onChange={(e) => setUmamiPassword(e.target.value)}
+                  className="bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20 text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-white/60 text-[10px] font-medium">域名 (Domain)</Label>
+                <Input
+                  type="text"
+                  required
+                  placeholder="如: example.com"
+                  value={umamiDomain}
+                  onChange={(e) => setUmamiDomain(e.target.value)}
+                  className="bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20 text-xs"
+                />
+              </div>
+            </div>
+          )}
+
           {/* 标题 */}
           <div className="space-y-1.5">
             <Label className="text-white/60 text-xs font-medium">{t.title}</Label>
@@ -518,7 +602,7 @@ export default function EditIconModal({
           {/* 选择分组 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between h-7">
                 <Label className="text-white/60 text-xs font-medium">{t.group}</Label>
                 {/* 胶囊 Tab 切换 */}
                 <div className="flex bg-white/5 p-0.5 rounded-lg border border-white/5 text-[10px] text-white/40">
@@ -533,10 +617,10 @@ export default function EditIconModal({
                   </button>
                   <button
                     type="button"
-                    disabled={widgetType === 'beszel' || widgetType === 'qbittorrent' || widgetType === 'jellyfin'}
+                    disabled={widgetType === 'beszel' || widgetType === 'qbittorrent' || widgetType === 'jellyfin' || widgetType === 'umami'}
                     onClick={() => handleTabChange('webpage')}
                     className={`px-2 py-0.5 rounded font-medium transition ${
-                      widgetType === 'beszel' || widgetType === 'qbittorrent' || widgetType === 'jellyfin'
+                      widgetType === 'beszel' || widgetType === 'qbittorrent' || widgetType === 'jellyfin' || widgetType === 'umami'
                         ? 'opacity-30 cursor-not-allowed'
                         : 'cursor-pointer hover:text-white'
                     } ${
@@ -561,7 +645,9 @@ export default function EditIconModal({
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-white/60 text-xs font-medium">{t.openMethod}</Label>
+              <div className="flex items-center h-7">
+                <Label className="text-white/60 text-xs font-medium">{t.openMethod}</Label>
+              </div>
               <select
                 value={openMethod}
                 onChange={(e) => setOpenMethod(Number(e.target.value))}

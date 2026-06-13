@@ -85,7 +85,7 @@ export default function JellyfinWidget({ title, stats, url, error, isLoading }: 
 
         {/* 播放状态角标 */}
         {hasPlaying && (
-          <div className="flex items-center gap-1 text-[9px] bg-emerald-500/15 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full animate-pulse flex-shrink-0">
+          <div className="flex items-center gap-1 text-[9px] bg-emerald-500/15 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full animate-pulse flex-shrink-0 transition-opacity duration-200 group-hover:opacity-0 pointer-events-none">
             <Play size={9} fill="currentColor" />
             <span>播中: {stats.nowPlaying.length}</span>
           </div>

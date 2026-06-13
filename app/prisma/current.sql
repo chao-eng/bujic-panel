@@ -36,8 +36,8 @@ CREATE TABLE "item_icon" (
     "pinned" BOOLEAN NOT NULL DEFAULT false,
     "item_icon_group_id" INTEGER NOT NULL,
     "user_id" INTEGER NOT NULL,
-    CONSTRAINT "item_icon_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "item_icon_item_icon_group_id_fkey" FOREIGN KEY ("item_icon_group_id") REFERENCES "item_icon_group" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "widget_type" TEXT NOT NULL DEFAULT '',
+    "widget_settings" TEXT NOT NULL DEFAULT '{}'
 );
 
 -- CreateTable
@@ -50,8 +50,7 @@ CREATE TABLE "item_icon_group" (
     "description" TEXT,
     "sort" INTEGER NOT NULL DEFAULT 1,
     "group_type" TEXT NOT NULL DEFAULT 'website',
-    "user_id" INTEGER NOT NULL,
-    CONSTRAINT "item_icon_group_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "user_id" INTEGER NOT NULL
 );
 
 -- CreateTable
@@ -61,8 +60,7 @@ CREATE TABLE "module_config" (
     "updated_at" DATETIME NOT NULL,
     "user_id" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
-    "value_json" TEXT NOT NULL,
-    CONSTRAINT "module_config_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "value_json" TEXT NOT NULL
 );
 
 -- CreateTable
@@ -82,8 +80,7 @@ CREATE TABLE "file" (
     "file_name" TEXT NOT NULL,
     "method" INTEGER NOT NULL DEFAULT 1,
     "ext" TEXT NOT NULL,
-    "file_type" TEXT NOT NULL DEFAULT '',
-    CONSTRAINT "file_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "file_type" TEXT NOT NULL DEFAULT ''
 );
 
 -- CreateTable
@@ -120,3 +117,4 @@ CREATE INDEX "item_icon_group_user_id_group_type_idx" ON "item_icon_group"("user
 
 -- CreateIndex
 CREATE UNIQUE INDEX "module_config_user_id_name_key" ON "module_config"("user_id", "name");
+

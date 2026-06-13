@@ -52,76 +52,36 @@ function splitSqlStatements(sqlContent) {
   return statements.filter(stmt => stmt.length > 0);
 }
 
-async function runMigrations() {
+async function syncDatabaseSchema() {
   try {
-    console.log("[Start] 正在检查并执行数据库结构迁移...");
-    
-    // 初始化 _prisma_migrations 表（如果不存在）
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "_prisma_migrations" (
-          "id"                    TEXT PRIMARY KEY NOT NULL,
-          "checksum"              TEXT NOT NULL,
-          "finished_at"           DATETIME,
-          "migration_name"        TEXT NOT NULL,
-          "logs"                  TEXT,
-          "rolled_back_at"        DATETIME,
-          "started_at"            DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
-          "applied_steps_count"   INTEGER DEFAULT 0 NOT NULL
-      );
-    `);
+    console.log("[Start] 正在检查数据库表结构...");
 
-    // 读取所有的迁移目录
-    const migrationsDir = path.join(__dirname, 'prisma', 'migrations');
-    if (!fs.existsSync(migrationsDir)) {
-      console.log("[Start] 未找到 prisma/migrations 目录，跳过迁移步骤。");
-      return;
+    // 1. 检查核心表 user 是否存在
+    let isDbEmpty = false;
+    try {
+      await prisma.$queryRaw`SELECT 1 FROM "user" LIMIT 1`;
+      console.log("[Start] 核心表 user 存在，跳过初始化。");
+    } catch (e) {
+      isDbEmpty = true;
     }
 
-    const migrationNames = fs.readdirSync(migrationsDir)
-      .filter(name => {
-        const fullPath = path.join(migrationsDir, name);
-        return fs.statSync(fullPath).isDirectory() && fs.existsSync(path.join(fullPath, 'migration.sql'));
-      })
-      .sort(); // 升序排序，保证按时间戳顺序应用
-
-    // 查询已应用的迁移
-    const appliedMigrations = await prisma.$queryRawUnsafe(
-      `SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL`
-    );
-    const appliedSet = new Set(appliedMigrations.map(m => m.migration_name));
-
-    for (const migrationName of migrationNames) {
-      if (appliedSet.has(migrationName)) {
-        console.log(`[Start] 迁移 [${migrationName}] 已存在，跳过。`);
-        continue;
+    // 2. 如果不存在，直接利用 prisma/current.sql 动态同步 DDL
+    if (isDbEmpty) {
+      console.log("[Start] 核心表未检测到，全新环境，开始根据最新的 schema 自动生成表...");
+      const schemaSqlPath = path.join(__dirname, 'prisma', 'current.sql');
+      if (fs.existsSync(schemaSqlPath)) {
+        const sql = fs.readFileSync(schemaSqlPath, 'utf8');
+        const statements = splitSqlStatements(sql);
+        for (const statement of statements) {
+          await prisma.$executeRawUnsafe(statement);
+        }
+        console.log("[Start] 数据库表结构同步成功！");
+      } else {
+        console.warn(`[Start] 未找到 DDL 脚本: ${schemaSqlPath}，跳过表初始化。请在开发环境运行 pnpm db:sql 生成此文件。`);
       }
-
-      console.log(`[Start] 正在应用新迁移: [${migrationName}]...`);
-      const sqlPath = path.join(migrationsDir, migrationName, 'migration.sql');
-      const sqlContent = fs.readFileSync(sqlPath, 'utf8');
-
-      // 拆分 SQL 语句逐条执行，防止 SQLite 驱动在单次 query 中不支持执行多条语句或 PRAGMA 不生效的问题
-      const statements = splitSqlStatements(sqlContent);
-      for (const statement of statements) {
-        await prisma.$executeRawUnsafe(statement);
-      }
-
-      // 写入迁移记录，生成兼容 Prisma 规范的数据
-      const checksum = crypto.createHash('sha256').update(sqlContent).digest('hex');
-      const id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
-
-      await prisma.$executeRawUnsafe(
-        `INSERT INTO "_prisma_migrations" (id, checksum, finished_at, migration_name, started_at, applied_steps_count)
-         VALUES (?, ?, datetime('now'), ?, datetime('now'), 1)`,
-        id, checksum, migrationName
-      );
-
-      console.log(`[Start] 迁移 [${migrationName}] 应用成功。`);
     }
-
-    console.log("[Start] 数据库初始化与结构迁移完成。");
   } catch (error) {
-    console.error("[Start] 数据库初始化/迁移失败:", error);
+    console.error("[Start] 数据库初始化失败:", error);
     process.exit(1);
   } finally {
     await prisma.$disconnect();
@@ -129,8 +89,8 @@ async function runMigrations() {
 }
 
 async function main() {
-  // 1. 执行迁移
-  await runMigrations();
+  // 1. 同步数据库
+  await syncDatabaseSchema();
 
   // 2. 执行数据填充 (Seed)
   try {

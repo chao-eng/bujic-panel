@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "db:push": "node scripts/prisma.js db push",
-    "db:migrate": "node scripts/prisma.js migrate deploy",
+    "db:sql": "prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > prisma/current.sql",
     "db:seed": "node scripts/prisma.js db seed",
     "db:setup": "pnpm db:push && pnpm db:seed"
   },

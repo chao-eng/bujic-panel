@@ -20,8 +20,9 @@ RUN pnpm exec prisma generate
 COPY app/ .
 RUN pnpm build
 
-# 4. 编译种子文件
+# 4. 编译种子文件并生成 current.sql
 RUN pnpm exec tsc prisma/seed.ts --module commonjs --target es2020 --esModuleInterop --skipLibCheck
+RUN pnpm exec prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > prisma/current.sql
 
 # ==========================================
 # 阶段 2: 运行阶段 (Runner)

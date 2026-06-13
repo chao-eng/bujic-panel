@@ -145,24 +145,24 @@ async function downloadFavicon(iconUrl: string, host: string, userId: number): P
     
     let uploadDir: string;
     if (process.env.DATA_DIR) {
-      uploadDir = path.join(process.env.DATA_DIR, relativeDir);
+      uploadDir = path.join(/*turbopackIgnore: true*/ process.env.DATA_DIR, relativeDir);
     } else if (process.env.UPLOAD_DIR) {
       const subDir = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}`;
-      uploadDir = path.join(process.env.UPLOAD_DIR, subDir);
+      uploadDir = path.join(/*turbopackIgnore: true*/ process.env.UPLOAD_DIR, subDir);
     } else {
-      uploadDir = path.join(process.cwd(), 'public', relativeDir);
+      uploadDir = path.join(/*turbopackIgnore: true*/ process.cwd(), 'public', relativeDir);
     }
 
-    fs.mkdirSync(uploadDir, { recursive: true });
+    fs.mkdirSync(/*turbopackIgnore: true*/ uploadDir, { recursive: true });
 
     // 文件名：内容 MD5 + 扩展名
     const hash = crypto.createHash('md5').update(nodeBuffer).digest('hex');
     let ext = path.extname(new URL(iconUrl).pathname);
     if (!ext || ext.length > 5) ext = '.ico'; // 兜底格式为 ico
     const filename = `${hash}${ext}`;
-    const filepath = path.join(uploadDir, filename);
+    const filepath = path.join(/*turbopackIgnore: true*/ uploadDir, filename);
 
-    fs.writeFileSync(filepath, nodeBuffer);
+    fs.writeFileSync(/*turbopackIgnore: true*/ filepath, nodeBuffer);
 
     // 物理文件相对路径
     const relativeSrc = `/${relativeDir}/${filename}`;

@@ -11,7 +11,7 @@ export async function GET(
     
     let uploadBaseDir: string | undefined;
     if (process.env.DATA_DIR) {
-      uploadBaseDir = path.join(process.env.DATA_DIR, 'uploads');
+      uploadBaseDir = path.join(/*turbopackIgnore: true*/ process.env.DATA_DIR, 'uploads');
     } else {
       uploadBaseDir = process.env.UPLOAD_DIR;
     }
@@ -20,20 +20,20 @@ export async function GET(
       return new NextResponse('Not Found', { status: 404 });
     }
 
-    const filePath = path.join(uploadBaseDir, ...pathSegments);
+    const filePath = path.join(/*turbopackIgnore: true*/ uploadBaseDir, ...pathSegments);
 
     // 防止目录穿越攻击
-    const resolvedPath = path.resolve(filePath);
-    const resolvedBase = path.resolve(uploadBaseDir);
+    const resolvedPath = path.resolve(/*turbopackIgnore: true*/ filePath);
+    const resolvedBase = path.resolve(/*turbopackIgnore: true*/ uploadBaseDir);
     if (!resolvedPath.startsWith(resolvedBase)) {
       return new NextResponse('Forbidden', { status: 403 });
     }
 
-    if (!fs.existsSync(resolvedPath)) {
+    if (!fs.existsSync(/*turbopackIgnore: true*/ resolvedPath)) {
       return new NextResponse('Not Found', { status: 404 });
     }
 
-    const fileBuffer = fs.readFileSync(resolvedPath);
+    const fileBuffer = fs.readFileSync(/*turbopackIgnore: true*/ resolvedPath);
     const ext = path.extname(resolvedPath).toLowerCase();
     
     let contentType = 'application/octet-stream';

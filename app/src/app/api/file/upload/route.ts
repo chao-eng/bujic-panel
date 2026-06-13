@@ -33,26 +33,26 @@ export async function POST(req: NextRequest) {
     
     let uploadDir: string;
     if (process.env.DATA_DIR) {
-      uploadDir = path.join(process.env.DATA_DIR, relativeDir);
+      uploadDir = path.join(/*turbopackIgnore: true*/ process.env.DATA_DIR, relativeDir);
     } else if (process.env.UPLOAD_DIR) {
       const subDir = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}`;
-      uploadDir = path.join(process.env.UPLOAD_DIR, subDir);
+      uploadDir = path.join(/*turbopackIgnore: true*/ process.env.UPLOAD_DIR, subDir);
     } else {
-      uploadDir = path.join(process.cwd(), 'public', relativeDir);
+      uploadDir = path.join(/*turbopackIgnore: true*/ process.cwd(), 'public', relativeDir);
     }
 
     // 确保上传物理目录存在
-    fs.mkdirSync(uploadDir, { recursive: true });
+    fs.mkdirSync(/*turbopackIgnore: true*/ uploadDir, { recursive: true });
 
     // 文件命名：内容 MD5 + 物理后缀
     const hash = crypto.createHash('md5').update(buffer).digest('hex');
     let ext = path.extname(file.name);
     if (!ext) ext = '.png'; // 默认 png
     const filename = `${hash}${ext}`;
-    const filepath = path.join(uploadDir, filename);
+    const filepath = path.join(/*turbopackIgnore: true*/ uploadDir, filename);
 
     // 物理写盘
-    fs.writeFileSync(filepath, buffer);
+    fs.writeFileSync(/*turbopackIgnore: true*/ filepath, buffer);
 
     const relativeSrc = `/${relativeDir}/${filename}`;
 

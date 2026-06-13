@@ -102,11 +102,24 @@ export default function EditIconModal({
       setDescription(editingIcon.description || '');
       setOpenMethod(editingIcon.openMethod);
       setPinned(editingIcon.pinned);
-      setGroupId(editingIcon.itemIconGroupId);
-      
       const groupInfo = groups.find((g) => g.id === editingIcon.itemIconGroupId);
-      if (groupInfo) {
-        setActiveGroupTab(groupInfo.groupType as 'website' | 'webpage');
+      if (editingIcon.widgetType === 'beszel' || editingIcon.widgetType === 'qbittorrent') {
+        setActiveGroupTab('website');
+        if (groupInfo && groupInfo.groupType !== 'website') {
+          const firstWebsiteGroup = groups.find((g) => g.groupType === 'website');
+          if (firstWebsiteGroup) {
+            setGroupId(firstWebsiteGroup.id);
+          } else {
+            setGroupId(editingIcon.itemIconGroupId);
+          }
+        } else {
+          setGroupId(editingIcon.itemIconGroupId);
+        }
+      } else {
+        setGroupId(editingIcon.itemIconGroupId);
+        if (groupInfo) {
+          setActiveGroupTab(groupInfo.groupType as 'website' | 'webpage');
+        }
       }
 
       setIconSrc(editingIcon.icon.src || 'lucide:globe');
@@ -313,9 +326,11 @@ export default function EditIconModal({
                 if (type === 'beszel') {
                   if (!url || url.includes('example.com') || url.includes('8080')) setUrl('http://localhost:8090');
                   setIconSrc('lucide:server');
+                  handleTabChange('website');
                 } else if (type === 'qbittorrent') {
                   if (!url || url.includes('example.com') || url.includes('8090')) setUrl('http://localhost:8080');
                   setIconSrc('lucide:download-cloud');
+                  handleTabChange('website');
                 }
               }}
               className="w-full h-9 px-3 bg-white/5 border border-white/5 rounded-xl text-white outline-none focus:border-indigo-500/40 text-xs transition"
@@ -470,9 +485,14 @@ export default function EditIconModal({
                   </button>
                   <button
                     type="button"
+                    disabled={widgetType === 'beszel' || widgetType === 'qbittorrent'}
                     onClick={() => handleTabChange('webpage')}
-                    className={`px-2 py-0.5 rounded font-medium transition cursor-pointer ${
-                      activeGroupTab === 'webpage' ? 'bg-white/10 text-white font-semibold' : 'hover:text-white'
+                    className={`px-2 py-0.5 rounded font-medium transition ${
+                      widgetType === 'beszel' || widgetType === 'qbittorrent'
+                        ? 'opacity-30 cursor-not-allowed'
+                        : 'cursor-pointer hover:text-white'
+                    } ${
+                      activeGroupTab === 'webpage' ? 'bg-white/10 text-white font-semibold' : ''
                     }`}
                   >
                     {t.webpage}

@@ -906,6 +906,12 @@ html[data-theme="blueprint-light"] .glass-panel:hover h4::after {
 [data-theme$="-light"] .placeholder-white\/20::placeholder {
   color: rgba(18, 19, 26, 0.3) !important;
 }
+[data-theme$="-light"] .placeholder-white\/25::placeholder {
+  color: rgba(18, 19, 26, 0.38) !important;
+}
+[data-theme$="-light"] .placeholder-white\/30::placeholder {
+  color: rgba(18, 19, 26, 0.45) !important;
+}
 [data-theme$="-light"] ::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.12) !important;
 }

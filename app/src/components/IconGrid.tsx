@@ -19,9 +19,10 @@ import { Pin, ExternalLink, Edit2, Trash2 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useTranslation } from './I18nProvider';
 import BeszelWidget from './Widgets/BeszelWidget';
-import QbittorrentWidget, { formatSpeed } from './Widgets/QbittorrentWidget';
+import QbittorrentWidget, { formatSpeed, formatBytes } from './Widgets/QbittorrentWidget';
 import JellyfinWidget from './Widgets/JellyfinWidget';
 import UmamiWidget from './Widgets/UmamiWidget';
+import WgEasyWidget from './Widgets/WgEasyWidget';
 
 // 动态图标解析器
 export function DynamicIcon({ name, className, size = 18 }: { name: string; className?: string; size?: number }) {
@@ -230,6 +231,16 @@ function SortableItem({
                       <span>访问: <span className="font-mono text-purple-400 font-semibold">{statsObj.data.visits}</span></span>
                       <span>浏览: <span className="font-mono text-emerald-400 font-semibold">{statsObj.data.pageviews}</span></span>
                     </>
+                  ) : iconItem.widgetType === 'wg-easy' ? (
+                    <>
+                      <span className="flex items-center gap-1">
+                        <span className={`w-1.5 h-1.5 rounded-full ${statsObj.data.connectedClients > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                        {statsObj.data.connectedClients > 0 ? `${statsObj.data.connectedClients} 个连接` : '在线'}
+                      </span>
+                      <span>客户端: <span className="font-mono text-white/80">{statsObj.data.enabledClients}/{statsObj.data.totalClients}</span></span>
+                      <span>下载: <span className="font-mono text-indigo-300 font-semibold">{formatBytes(statsObj.data.totalTx)}</span></span>
+                      <span>上传: <span className="font-mono text-purple-400 font-semibold">{formatBytes(statsObj.data.totalRx)}</span></span>
+                    </>
                   ) : (
                     <span className="text-white/30">就绪</span>
                   )
@@ -331,6 +342,14 @@ function SortableItem({
         />
       ) : iconItem.widgetType === 'umami' ? (
         <UmamiWidget
+          title={iconItem.title}
+          stats={statsObj?.data}
+          url={iconItem.url}
+          error={statsObj?.success === false ? statsObj.error : undefined}
+          isLoading={!!isWidgetsLoading}
+        />
+      ) : iconItem.widgetType === 'wg-easy' ? (
+        <WgEasyWidget
           title={iconItem.title}
           stats={statsObj?.data}
           url={iconItem.url}

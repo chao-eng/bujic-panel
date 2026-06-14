@@ -79,6 +79,7 @@ export default function EditIconModal({
   const [umamiUsername, setUmamiUsername] = useState('');
   const [umamiPassword, setUmamiPassword] = useState('');
   const [umamiDomain, setUmamiDomain] = useState('');
+  const [wgEasyPassword, setWgEasyPassword] = useState('');
 
   // 胶囊 Tab 切换状态 (website | webpage)
   const [activeGroupTab, setActiveGroupTab] = useState<'website' | 'webpage'>('website');
@@ -108,7 +109,7 @@ export default function EditIconModal({
       setOpenMethod(editingIcon.openMethod);
       setPinned(editingIcon.pinned);
       const groupInfo = groups.find((g) => g.id === editingIcon.itemIconGroupId);
-      if (editingIcon.widgetType === 'beszel' || editingIcon.widgetType === 'qbittorrent' || editingIcon.widgetType === 'jellyfin' || editingIcon.widgetType === 'umami') {
+      if (editingIcon.widgetType === 'beszel' || editingIcon.widgetType === 'qbittorrent' || editingIcon.widgetType === 'jellyfin' || editingIcon.widgetType === 'umami' || editingIcon.widgetType === 'wg-easy') {
         setActiveGroupTab('website');
         if (groupInfo && groupInfo.groupType !== 'website') {
           const firstWebsiteGroup = groups.find((g) => g.groupType === 'website');
@@ -142,6 +143,7 @@ export default function EditIconModal({
           setUmamiUsername('');
           setUmamiPassword('');
           setUmamiDomain('');
+          setWgEasyPassword('');
         } else if (editingIcon.widgetType === 'qbittorrent') {
           setQbUsername(settings.username || '');
           setQbPassword(settings.password || '');
@@ -152,6 +154,7 @@ export default function EditIconModal({
           setUmamiUsername('');
           setUmamiPassword('');
           setUmamiDomain('');
+          setWgEasyPassword('');
         } else if (editingIcon.widgetType === 'jellyfin') {
           setJellyfinApiKey(settings.apiKey || '');
           setBeszelEmail('');
@@ -162,6 +165,7 @@ export default function EditIconModal({
           setUmamiUsername('');
           setUmamiPassword('');
           setUmamiDomain('');
+          setWgEasyPassword('');
         } else if (editingIcon.widgetType === 'umami') {
           setUmamiUsername(settings.username || '');
           setUmamiPassword(settings.password || '');
@@ -172,6 +176,18 @@ export default function EditIconModal({
           setQbUsername('');
           setQbPassword('');
           setJellyfinApiKey('');
+          setWgEasyPassword('');
+        } else if (editingIcon.widgetType === 'wg-easy') {
+          setWgEasyPassword(settings.password || '');
+          setBeszelEmail('');
+          setBeszelPassword('');
+          setBeszelSystemName('');
+          setQbUsername('');
+          setQbPassword('');
+          setJellyfinApiKey('');
+          setUmamiUsername('');
+          setUmamiPassword('');
+          setUmamiDomain('');
         } else {
           setBeszelEmail('');
           setBeszelPassword('');
@@ -182,6 +198,7 @@ export default function EditIconModal({
           setUmamiUsername('');
           setUmamiPassword('');
           setUmamiDomain('');
+          setWgEasyPassword('');
         }
       } catch (e) {
         setBeszelEmail('');
@@ -193,6 +210,7 @@ export default function EditIconModal({
         setUmamiUsername('');
         setUmamiPassword('');
         setUmamiDomain('');
+        setWgEasyPassword('');
       }
     } else {
       setTitle('');
@@ -223,6 +241,7 @@ export default function EditIconModal({
       setUmamiUsername('');
       setUmamiPassword('');
       setUmamiDomain('');
+      setWgEasyPassword('');
     }
     setErrorMsg('');
   }, [editingIcon, isOpen, activeGroupId, groups]);
@@ -332,6 +351,10 @@ export default function EditIconModal({
             password: umamiPassword,
             domain: umamiDomain,
           };
+        } else if (widgetType === 'wg-easy') {
+          settingsObj = {
+            password: wgEasyPassword,
+          };
         }
         const settingsJson = JSON.stringify(settingsObj);
         // 加密 widgetSettings，防止凭证明文出现在网络请求中
@@ -399,6 +422,10 @@ export default function EditIconModal({
                   if (!url || url.includes('example.com') || url.includes('8090') || url.includes('8080') || url.includes('8096')) setUrl('http://localhost:3000');
                   setIconSrc('lucide:bar-chart-3');
                   handleTabChange('website');
+                } else if (type === 'wg-easy') {
+                  if (!url || url.includes('example.com') || url.includes('8090') || url.includes('8080') || url.includes('8096') || url.includes('3000')) setUrl('http://localhost:51821');
+                  setIconSrc('lucide:shield');
+                  handleTabChange('website');
                 }
               }}
               className="w-full h-9 px-3 bg-white/5 border border-white/5 rounded-xl text-white outline-none focus:border-indigo-500/40 text-xs transition"
@@ -408,13 +435,14 @@ export default function EditIconModal({
               <option value="qbittorrent" className="bg-[#12131a] text-white">监控组件 (qBittorrent)</option>
               <option value="jellyfin" className="bg-[#12131a] text-white">监控组件 (Jellyfin)</option>
               <option value="umami" className="bg-[#12131a] text-white">监控组件 (Umami)</option>
+              <option value="wg-easy" className="bg-[#12131a] text-white">监控组件 (WG-Easy)</option>
             </select>
           </div>
 
           {/* 目标链接 */}
           <div className="space-y-1.5">
             <Label className="text-white/60 text-xs font-medium">
-              {widgetType === 'beszel' ? 'Beszel Hub 地址' : widgetType === 'qbittorrent' ? 'qBittorrent 地址' : widgetType === 'umami' ? 'Umami 地址' : t.url}
+              {widgetType === 'beszel' ? 'Beszel Hub 地址' : widgetType === 'qbittorrent' ? 'qBittorrent 地址' : widgetType === 'umami' ? 'Umami 地址' : widgetType === 'wg-easy' ? 'WG-Easy 地址' : t.url}
             </Label>
             <div className="flex gap-2">
               <Input
@@ -429,6 +457,8 @@ export default function EditIconModal({
                     ? 'http://localhost:8096'
                     : widgetType === 'umami'
                     ? 'http://localhost:3000'
+                    : widgetType === 'wg-easy'
+                    ? 'http://localhost:51821'
                     : 'https://example.com'
                 }
                 value={url}
@@ -580,6 +610,24 @@ export default function EditIconModal({
             </div>
           )}
 
+          {/* WG-Easy 特定连接配置 */}
+          {widgetType === 'wg-easy' && (
+            <div className="space-y-3 p-3.5 rounded-xl border border-white/5 bg-white/5 animate-fade-in">
+              <h5 className="text-xs font-bold text-indigo-400">WG-Easy 连接配置</h5>
+              <div className="space-y-1.5">
+                <Label className="text-white/60 text-[10px] font-medium">访问密码 (Password)</Label>
+                <Input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={wgEasyPassword}
+                  onChange={(e) => setWgEasyPassword(e.target.value)}
+                  className="bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20 text-xs"
+                />
+              </div>
+            </div>
+          )}
+
           {/* 标题 */}
           <div className="space-y-1.5">
             <Label className="text-white/60 text-xs font-medium">{t.title}</Label>
@@ -623,10 +671,10 @@ export default function EditIconModal({
                   </button>
                   <button
                     type="button"
-                    disabled={widgetType === 'beszel' || widgetType === 'qbittorrent' || widgetType === 'jellyfin' || widgetType === 'umami'}
+                    disabled={widgetType === 'beszel' || widgetType === 'qbittorrent' || widgetType === 'jellyfin' || widgetType === 'umami' || widgetType === 'wg-easy'}
                     onClick={() => handleTabChange('webpage')}
                     className={`px-2 py-0.5 rounded font-medium transition ${
-                      widgetType === 'beszel' || widgetType === 'qbittorrent' || widgetType === 'jellyfin' || widgetType === 'umami'
+                      widgetType === 'beszel' || widgetType === 'qbittorrent' || widgetType === 'jellyfin' || widgetType === 'umami' || widgetType === 'wg-easy'
                         ? 'opacity-30 cursor-not-allowed'
                         : 'cursor-pointer hover:text-white'
                     } ${

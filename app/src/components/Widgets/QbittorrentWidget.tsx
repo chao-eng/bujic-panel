@@ -29,7 +29,7 @@ export function formatSpeed(bytesPerSecond: number): string {
   return `${mb.toFixed(1)} MB/s`;
 }
 
-function formatBytes(bytes: number): string {
+export function formatBytes(bytes: number): string {
   if (!bytes || bytes <= 0) return '0 B';
   const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
   let i = 0;

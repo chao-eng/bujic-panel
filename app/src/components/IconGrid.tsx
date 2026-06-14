@@ -23,6 +23,7 @@ import QbittorrentWidget, { formatSpeed, formatBytes } from './Widgets/Qbittorre
 import JellyfinWidget from './Widgets/JellyfinWidget';
 import UmamiWidget from './Widgets/UmamiWidget';
 import WgEasyWidget from './Widgets/WgEasyWidget';
+import UptimeKumaWidget from './Widgets/UptimeKumaWidget';
 
 // 动态图标解析器
 export function DynamicIcon({ name, className, size = 18 }: { name: string; className?: string; size?: number }) {
@@ -350,6 +351,14 @@ function SortableItem({
         />
       ) : iconItem.widgetType === 'wg-easy' ? (
         <WgEasyWidget
+          title={iconItem.title}
+          stats={statsObj?.data}
+          url={iconItem.url}
+          error={statsObj?.success === false ? statsObj.error : undefined}
+          isLoading={!!isWidgetsLoading}
+        />
+      ) : iconItem.widgetType === 'uptime-kuma' ? (
+        <UptimeKumaWidget
           title={iconItem.title}
           stats={statsObj?.data}
           url={iconItem.url}

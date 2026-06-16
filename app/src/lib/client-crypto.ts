@@ -1,8 +1,23 @@
 'use client';
 
+import { gcm } from '@noble/ciphers/aes.js';
+
 // 客户端密钥缓存
 let cachedKey: CryptoKey | null = null;
 let cachedKeyHex: string | null = null;
+
+/**
+ * 从 /api/crypto 获取派生的客户端密钥（hex）
+ */
+async function getClientKeyHex(): Promise<string> {
+  if (cachedKeyHex) return cachedKeyHex;
+
+  const res = await fetch('/api/crypto', { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch encryption key');
+  const { key } = await res.json();
+  cachedKeyHex = key as string;
+  return cachedKeyHex;
+}
 
 /**
  * 从 /api/crypto 获取派生的客户端密钥（hex），并导入为 CryptoKey
@@ -10,12 +25,8 @@ let cachedKeyHex: string | null = null;
 async function getClientKey(): Promise<CryptoKey> {
   if (cachedKey) return cachedKey;
 
-  const res = await fetch('/api/crypto', { cache: 'no-store' });
-  if (!res.ok) throw new Error('Failed to fetch encryption key');
-  const { key } = await res.json();
-  cachedKeyHex = key as string;
-
-  const keyBytes = hexToBytes(key);
+  const hex = await getClientKeyHex();
+  const keyBytes = hexToBytes(hex);
   cachedKey = await window.crypto.subtle.importKey(
     'raw',
     keyBytes.buffer as ArrayBuffer,
@@ -34,8 +45,8 @@ function hexToBytes(hex: string): Uint8Array {
   return bytes;
 }
 
-function toBase64(buffer: ArrayBuffer): string {
-  return btoa(String.fromCharCode(...new Uint8Array(buffer)));
+function toBase64(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes));
 }
 
 /**
@@ -43,24 +54,47 @@ function toBase64(buffer: ArrayBuffer): string {
  * 返回格式: base64(iv):base64(authTag):base64(ciphertext)
  */
 export async function encryptSensitive(plaintext: string): Promise<string> {
-  const key = await getClientKey();
-  const iv = window.crypto.getRandomValues(new Uint8Array(12)); // 96-bit IV for GCM
+  if (typeof window === 'undefined') {
+    return plaintext;
+  }
 
-  const encoded = new TextEncoder().encode(plaintext);
-  const cipherBuffer = await window.crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv, tagLength: 128 },
-    key,
-    encoded
-  );
+  const iv = new Uint8Array(12); // 96-bit IV for GCM
+  if (window.crypto && window.crypto.getRandomValues) {
+    window.crypto.getRandomValues(iv);
+  } else {
+    for (let i = 0; i < iv.length; i++) {
+      iv[i] = Math.floor(Math.random() * 256);
+    }
+  }
 
-  // AES-GCM 的 subtle.encrypt 输出：ciphertext + authTag(16字节) 拼接
-  const cipherWithTag = new Uint8Array(cipherBuffer);
+  let cipherWithTag: Uint8Array;
+
+  if (window.crypto && window.crypto.subtle) {
+    const key = await getClientKey();
+    const encoded = new TextEncoder().encode(plaintext);
+    const cipherBuffer = await window.crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv, tagLength: 128 },
+      key,
+      encoded
+    );
+    cipherWithTag = new Uint8Array(cipherBuffer);
+  } else {
+    // Web Crypto API 不可用（非安全上下文，如 HTTP）时，降级使用纯 JS 加密
+    const keyHex = await getClientKeyHex();
+    const keyBytes = hexToBytes(keyHex);
+    const encoded = new TextEncoder().encode(plaintext);
+
+    const aesGcm = gcm(keyBytes, iv);
+    cipherWithTag = aesGcm.encrypt(encoded);
+  }
+
+  // AES-GCM 的输出：ciphertext + authTag(16字节) 拼接
   const ciphertext = cipherWithTag.slice(0, cipherWithTag.length - 16);
   const authTag = cipherWithTag.slice(cipherWithTag.length - 16);
 
-  const ivB64 = toBase64(iv.buffer);
-  const authTagB64 = toBase64(authTag.buffer);
-  const cipherB64 = toBase64(ciphertext.buffer);
+  const ivB64 = toBase64(iv);
+  const authTagB64 = toBase64(authTag);
+  const cipherB64 = toBase64(ciphertext);
 
   return `${ivB64}:${authTagB64}:${cipherB64}`;
 }

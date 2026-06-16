@@ -232,7 +232,11 @@ bujic-Panel/
 
 ## 🔒 安全与优化
 
-1. **敏感信息加密传输**：登录密码、修改密码、Widget 第三方服务凭证（Beszel、qBittorrent、Jellyfin、Umami 等）在提交前均经过 **AES-256-GCM** 客户端加密，服务端解密后再进行后续处理，防止明文凭证出现在网络请求体或代理日志中。加密密钥由 `ENCRYPT_KEY` 环境变量控制，服务端通过 HMAC 派生客户端密钥，主密钥从不暴露到前端。
+1. **敏感信息加密传输**：登录密码、修改密码、Widget 第三方服务凭证（Beszel、qBittorrent、Jellyfin、Umami 等）在提交前均默认经过 **AES-256-GCM** 客户端加密，服务端解密后再进行后续处理，防止明文凭证出现在网络请求体或代理日志中。加密密钥由 `ENCRYPT_KEY` 环境变量控制，服务端通过 HMAC 派生客户端密钥，主密钥从不暴露到前端。
+   * **关于非 HTTPS (HTTP) 访问的加密机制说明**：
+     * **安全上下文（默认）：** 在 HTTPS 或 localhost 环境下，前端会利用浏览器原生的 **Web Crypto API**（`window.crypto.subtle`）完成 AES-256-GCM 加密，性能最优。
+     * **非安全上下文（纯 JS 降级）：** 在普通的 HTTP 访问中，浏览器禁用原生 Web Crypto。系统会自动无感降级为使用纯 JavaScript 密码学库（`@noble/ciphers`）在前端进行同等强度的 AES-256-GCM 加密，实现 **HTTP 传输时也进行前端加密**。
+     * **补充建议：** 虽然纯 JS 加密保护了传输中的密码不被直接截获，但 HTTP 协议本身的会话和中间数据依然存在被中间人攻击（MITM）的风险。**生产环境或外网部署时，强烈建议配置并强制使用 HTTPS**。如果您在内网 HTTP 环境下想强制使用浏览器硬件加速的原生 Web Crypto，可配置 Chrome/Edge 浏览器 `chrome://flags/#unsafely-treat-insecure-origin-as-secure` 标志并填入您的 HTTP 访问地址。
 2. **目录穿越防御**：`/uploads` 路由经过严苛的 `path.resolve` 与 `startsWith` 校验，杜绝通过相对路径 `../` 读取宿主机系统文件的风险。
 3. **SQLite 并发优化 (WAL)**：在 `src/lib/db.ts` 初始化数据库连接时，自动执行：
    - `PRAGMA journal_mode = WAL;`（启用预写日志，提高高并发读写性能）。

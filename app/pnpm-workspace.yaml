@@ -7,3 +7,5 @@ allowBuilds:
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+trustLockfile: true
+

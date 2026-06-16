@@ -1,7 +1,7 @@
 # ==========================================
 # 阶段 1: 构建阶段 (Builder)
 # ==========================================
-FROM node:22-alpine AS builder
+FROM node:22.21-alpine AS builder
 
 WORKDIR /app
 

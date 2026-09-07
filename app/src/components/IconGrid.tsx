@@ -418,6 +418,7 @@ function SortableItem({
         {...attributes}
         {...listeners}
         onClick={handleClick}
+        onContextMenu={handleContextMenu}
         className={`glass-panel relative flex flex-col p-5 rounded-2xl cursor-pointer hover:-translate-y-1 group select-none col-span-2 ${isWidget ? 'h-40' : ''}`}
       >
         <div className="absolute top-3 right-3 flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity z-10">

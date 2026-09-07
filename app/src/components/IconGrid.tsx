@@ -31,6 +31,7 @@ import UmamiWidget from './Widgets/UmamiWidget';
 import WgEasyWidget from './Widgets/WgEasyWidget';
 import UptimeKumaWidget from './Widgets/UptimeKumaWidget';
 import { resolveOpenUrl } from '../lib/openUrl';
+import { safeIconSrc } from '../lib/iconSrc';
 
 // 动态图标解析器
 export function DynamicIcon({ name, className, size = 18 }: { name: string; className?: string; size?: number }) {
@@ -188,7 +189,7 @@ function SortableItem({
       {isLocalIcon ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={iconItem.icon.src}
+          src={safeIconSrc(iconItem.icon.src)}
           alt=""
           className={imgCls}
           onError={(e) => {
@@ -461,7 +462,7 @@ function SortableItem({
           {isLocalIcon ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={iconItem.icon.src}
+              src={safeIconSrc(iconItem.icon.src)}
               alt=""
               className="w-6 h-6 object-contain"
               onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}

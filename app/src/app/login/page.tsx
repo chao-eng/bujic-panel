@@ -6,6 +6,7 @@ import { loginAction } from '../../actions/userActions';
 import { useTranslation } from '../../components/I18nProvider';
 import { Languages, User, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { encryptSensitive } from '../../lib/client-crypto';
+import { safeIconSrc } from '../../lib/iconSrc';
 
 export default function LoginPage() {
   const { t, locale, setLocale } = useTranslation();
@@ -81,7 +82,7 @@ export default function LoginPage() {
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-lg mb-4 text-white overflow-hidden">
               {brandIcon ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={brandIcon} alt="" className="w-9 h-9 object-contain" />
+                <img src={safeIconSrc(brandIcon)} alt="" className="w-9 h-9 object-contain" />
               ) : (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
                   <circle cx="7" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" />

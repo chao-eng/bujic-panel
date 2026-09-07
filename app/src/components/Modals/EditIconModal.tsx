@@ -16,6 +16,7 @@ import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { Loader2, Globe, Sparkles, Upload } from 'lucide-react';
 import { encryptSensitive } from '../../lib/client-crypto';
+import { safeIconSrc } from '../../lib/iconSrc';
 
 interface GroupType {
   id: number;
@@ -801,7 +802,7 @@ export default function EditIconModal({
                 {iconSrc.startsWith('/') || iconSrc.startsWith('http') || iconSrc.startsWith('data:image/') ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={iconSrc}
+                    src={safeIconSrc(iconSrc)}
                     alt=""
                     className="w-6 h-6 object-contain"
                     onError={(e) => {

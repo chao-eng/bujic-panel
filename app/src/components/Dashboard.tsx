@@ -17,6 +17,7 @@ import {
 import { editGroupAction, getGroupsAction } from '../actions/groupActions';
 import { getTabsAction, editTabAction } from '../actions/tabActions';
 import { logoutAction } from '../actions/userActions';
+import { safeIconSrc } from '../lib/iconSrc';
 import {
   Settings,
   FolderEdit,
@@ -470,7 +471,7 @@ export default function Dashboard({
           <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
             {initialBrandIcon ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={initialBrandIcon} alt="" className="w-full h-full object-contain" />
+              <img src={safeIconSrc(initialBrandIcon)} alt="" className="w-full h-full object-contain" />
             ) : (
               <div className="w-full h-full rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-md flex items-center justify-center text-white">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5">
@@ -561,7 +562,7 @@ export default function Dashboard({
             <div className="w-7 h-7 rounded-full border border-white/10 bg-white/5 overflow-hidden flex items-center justify-center">
               {currentUser.headImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={currentUser.headImage} alt="" className="w-full h-full object-cover" />
+                <img src={safeIconSrc(currentUser.headImage)} alt="" className="w-full h-full object-cover" />
               ) : (
                 <span className="text-xs font-heading font-bold text-indigo-400">
                   {currentUser.name?.substring(0, 1).toUpperCase() || 'U'}

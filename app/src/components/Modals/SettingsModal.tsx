@@ -412,7 +412,7 @@ export default function SettingsModal({
 
         <div className="px-6 pb-8">
           <Tabs defaultValue="profile" className="w-full text-sm">
-            <TabsList className="bg-white/5 border border-white/5 w-full h-auto justify-start rounded-xl p-1 mb-4 flex flex-nowrap overflow-x-auto whitespace-nowrap scrollbar-none">
+            <TabsList className="bg-white/5 border border-white/5 w-full h-auto justify-start rounded-xl p-1 mb-4 flex flex-wrap gap-y-1 whitespace-nowrap scrollbar-none">
               <TabsTrigger value="profile" className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg data-[state=active]:bg-indigo-500 data-[state=active]:text-white text-xs cursor-pointer shrink-0">
                 <User size={13} />
                 <span>{t.profile}</span>

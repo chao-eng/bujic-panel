@@ -74,3 +74,33 @@ export function getClientIpFromHeaders(headers: Headers): string {
   }
   return '';
 }
+
+/** 提取 host 字符串的主机名：`[::1]:3700` → `::1`；`10.0.8.2:3700` / `home.cc` → 去端口部分 */
+function stripHostPort(host: string): string {
+  let h = host.trim().toLowerCase();
+  if (h.startsWith('[')) {
+    const end = h.indexOf(']');
+    h = end === -1 ? h.slice(1) : h.slice(1, end);
+  } else {
+    h = h.split(':')[0];
+  }
+  return h;
+}
+
+/** 从 Host 头提取主机名（剥端口） */
+export function getHostFromHeaders(headers: Headers): string {
+  return stripHostPort(headers.get('host') || '');
+}
+
+/**
+ * 判断访问入口 Host 是否为网段内 IP（反代 / Docker NAT 场景兜底）：
+ * 仅当 Host 是内网 IP 且落在已配置网段时返回 true，域名/主机名一律 false。
+ */
+export function isHostIpInSubnets(host: string | null | undefined, subnets: string[]): boolean {
+  if (!host) return false;
+  const name = stripHostPort(host);
+  if (!name) return false;
+  const norm = normalizeIpv4(name);
+  if (!norm) return false;
+  return isIpInSubnets(norm, subnets);
+}

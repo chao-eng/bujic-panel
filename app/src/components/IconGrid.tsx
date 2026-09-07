@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
@@ -264,29 +265,30 @@ function SortableItem({
     </DropdownMenu>
   );
 
-  // 右键菜单（固定在光标处）
+  // 右键菜单（portal 到 body，避免卡片祖先 transform 破坏 fixed 定位）
   const renderContextMenu = () => {
-    if (!ctxMenu) return null;
-    return (
+    if (!ctxMenu || typeof document === 'undefined') return null;
+    return createPortal(
       <DropdownMenu
         open
         onOpenChange={(open) => { if (!open) setCtxMenu(null); }}
       >
         <DropdownMenuTrigger asChild>
           <span
-            className="pointer-events-none"
+            data-context-trigger="true"
             style={{ position: 'fixed', left: ctxMenu.x, top: ctxMenu.y, width: 1, height: 1 }}
           />
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="start"
           side="bottom"
-          sideOffset={2}
+          sideOffset={4}
           className="bg-[#12131a]/95 border-white/10 text-white/85 p-1 rounded-xl min-w-[160px]"
         >
           {menuItems}
         </DropdownMenuContent>
-      </DropdownMenu>
+      </DropdownMenu>,
+      document.body
     );
   };
 

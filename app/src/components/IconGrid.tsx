@@ -154,10 +154,27 @@ function SortableItem({
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    try {
-      await navigator.clipboard.writeText(openUrl);
+    const showCopied = () => {
       setCopiedTip(true);
       setTimeout(() => setCopiedTip(false), 1600);
+    };
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        // 仅安全上下文（HTTPS/localhost）下 Clipboard API 可用
+        await navigator.clipboard.writeText(openUrl);
+      } else {
+        // HTTP 内网等非安全上下文：降级使用 execCommand 同步复制
+        const textarea = document.createElement('textarea');
+        textarea.value = openUrl;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        const ok = document.execCommand('copy');
+        textarea.remove();
+        if (!ok) throw new Error('execCommand copy failed');
+      }
+      showCopied();
     } catch (err) {}
   };
 

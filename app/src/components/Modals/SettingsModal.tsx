@@ -28,6 +28,7 @@ import {
   saveSiteBrandAction,
   saveLanSubnetsAction,
 } from '../../actions/systemActions';
+import { safeIconSrc } from '../../lib/iconSrc';
 
 interface UserType {
   id: number;
@@ -820,7 +821,7 @@ export default function SettingsModal({
                       <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center overflow-hidden text-indigo-400 flex-shrink-0">
                         {brandIcon ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={brandIcon} alt="" className="w-9 h-9 object-contain" />
+                          <img src={safeIconSrc(brandIcon)} alt="" className="w-full h-full object-contain" />
                         ) : (
                           <Globe size={20} />
                         )}

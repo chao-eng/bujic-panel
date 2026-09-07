@@ -79,11 +79,18 @@ export default function LoginPage() {
         <div className="glass-panel p-8 rounded-2xl glow-effect">
           {/* Logo 区域 */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-lg mb-4 text-white overflow-hidden">
-              {brandIcon ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={safeIconSrc(brandIcon)} alt="" className="w-9 h-9 object-contain" />
-              ) : (
+            {brandIcon ? (
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl overflow-hidden shadow-xl border border-white/10 bg-white/5 mb-4 backdrop-blur-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={safeIconSrc(brandIcon)}
+                  alt=""
+                  className="w-full h-full object-contain"
+                  onError={() => setBrandIcon('')}
+                />
+              </div>
+            ) : (
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-lg mb-4 text-white overflow-hidden">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
                   <circle cx="7" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" />
                   <path d="M7 2V3M7 11V12M2 7H3M11 7H12" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
@@ -96,8 +103,8 @@ export default function LoginPage() {
                   <path d="M2 20C5 18 13 17 22 20" />
                   <path d="M4 22C6 21.5 8 21.5 10 22C12 22.5 14 22.5 16 22C18 21.5 20 21.5 22 22" strokeWidth="1.5" opacity="0.8" />
                 </svg>
-              )}
-            </div>
+              </div>
+            )}
             <h1 className="font-heading text-2xl font-bold tracking-tight text-white mb-2">
               {brandName || t.loginTitle}
             </h1>

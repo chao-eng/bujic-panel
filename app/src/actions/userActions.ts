@@ -227,6 +227,7 @@ export async function createUserAction(data: {
 // 管理员：更新用户
 export async function updateUserAction(data: {
   id: number;
+  username?: string;
   name?: string;
   mail?: string;
   status?: number;
@@ -252,10 +253,40 @@ export async function updateUserAction(data: {
     role: data.role,
   };
 
+  // 支持修改用户名
+  let usernameChanged = false;
+  if (data.username && data.username.trim()) {
+    const newUsername = data.username.trim();
+    const existingUsername = await db.user.findFirst({
+      where: { username: newUsername, id: { not: data.id } },
+    });
+    if (existingUsername) {
+      return { success: false, message: '该用户名已被占用' };
+    }
+    // 仅在真正变化时才回写，避免不必要的唯一索引触碰
+    const target = await db.user.findUnique({
+      where: { id: data.id },
+      select: { username: true },
+    });
+    if (target && target.username !== newUsername) {
+      updateData.username = newUsername;
+      usernameChanged = true;
+    }
+  }
+
   if (data.password) {
     // 解密前端传来的加密密码
     const rawPwd = decryptFromTransport(data.password);
     updateData.password = passwordEncryption(rawPwd);
+  }
+
+  // 修改的是当前登录管理员的用户名：一并清空持久 token 并要求重新登录
+  let relogin = false;
+  if (usernameChanged && data.id === admin.id) {
+    relogin = true;
+    updateData.token = null;
+    const cookieStore = await cookies();
+    cookieStore.delete('auth_token');
   }
 
   const updated = await db.user.update({
@@ -263,7 +294,7 @@ export async function updateUserAction(data: {
     data: updateData,
   });
 
-  return { success: true, user: updated };
+  return { success: true, user: updated, relogin };
 }
 
 // 管理员：删除用户

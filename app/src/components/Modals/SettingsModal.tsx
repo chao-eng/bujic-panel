@@ -339,6 +339,7 @@ export default function SettingsModal({
       const encPwd = managePassword ? await encryptSensitive(managePassword) : undefined;
       const res = await updateUserAction({
         id: editingUser.id,
+        username: manageUsername,
         name: manageName,
         mail: manageMail,
         status: manageStatus,
@@ -348,6 +349,13 @@ export default function SettingsModal({
       if (res.success) {
         setIsAddUserOpen(false);
         loadUsersList();
+        // 修改的是当前登录账号：用户名已变更，提示重新登录并跳转
+        if (res.relogin) {
+          setAdminMsg(t.usernameChangedRelogin);
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 1500);
+        }
       } else {
         setAdminError(true);
         setAdminMsg(res.message || t.updateFailed);
@@ -587,11 +595,13 @@ export default function SettingsModal({
                         <Input
                           type="text"
                           required
-                          disabled={!!editingUser}
                           value={manageUsername}
                           onChange={(e) => setManageUsername(e.target.value)}
                           className="bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl h-8 text-xs placeholder-white/20"
                         />
+                        {!!editingUser && editingUser.id === currentUser.id && (
+                          <p className="text-[10px] text-white/30 mt-1">{t.usernameSelfChangeHint}</p>
+                        )}
                       </div>
                       <div>
                         <Label className="text-white/50 text-[10px] uppercase">{t.password}</Label>

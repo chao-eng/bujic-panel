@@ -977,7 +977,7 @@ export default function SettingsModal({
               <div className="p-4 bg-white/5 border border-white/5 rounded-xl space-y-3 text-xs leading-relaxed text-white/70">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-heading font-extrabold text-base text-indigo-400">{t.loginTitle}</span>
-                  <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 rounded-full text-[9px] font-mono">v2.0.4 - Next.js Migration</span>
+                  <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 rounded-full text-[9px] font-mono">v2026.09.07</span>
                 </div>
                 <p>{aboutText}</p>
                 <div className="border-t border-white/5 pt-3 mt-3">

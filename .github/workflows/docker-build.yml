@@ -48,6 +48,9 @@ jobs:
           push: true
           # 显式指定构建多平台架构镜像，支持 AMD64 (x86_64) 和 ARM64 (Apple M系列/树莓派/ARM云服务器等)
           platforms: linux/amd64,linux/arm64
+          # 关闭 SBOM/provenance 证明清单：ACR 会拒绝 oci.empty 清单导致推送失败
+          provenance: false
+          sbom: false
           # 同时发布三个标签：具体分秒时间戳、日期和最新版（latest）
           tags: |
             ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/${{ secrets.ALIYUN_REPOSITORY }}:${{ steps.get-date.outputs.tag }}

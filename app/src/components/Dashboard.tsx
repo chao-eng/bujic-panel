@@ -463,96 +463,38 @@ export default function Dashboard({
         </div>
       )}
 
-      {/* 顶部导航控制条 */}
-      <header className="w-full border-b border-white/5 bg-[#0a0b10]/60 backdrop-blur-xl sticky top-0 z-40 px-6 pt-4 pb-3 space-y-3">
-        {/* 第一行：品牌 + 操作 */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0">
-              {initialBrandIcon ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={initialBrandIcon} alt="" className="w-full h-full object-contain" />
-              ) : (
-                <div className="w-full h-full rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-md flex items-center justify-center text-white">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-                    <circle cx="7" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" />
-                    <path d="M7 2V3M7 11V12M2 7H3M11 7H12" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
-                    <path d="M18 20C17.5 15.5 16 11.5 13 9" />
-                    <path d="M13 9C10.5 8.5 8 9.5 7 11.5" />
-                    <path d="M13 9C11 7 9.5 5 11 3" />
-                    <path d="M13 9C14.5 7 16.5 6.5 18.5 7.5" />
-                    <path d="M13 9C15.5 10 17 11.5 17.5 13.5" />
-                    <path d="M13 9C13 11 12 13 10.5 14" />
-                    <path d="M2 20C5 18 13 17 22 20" />
-                    <path d="M4 22C6 21.5 8 21.5 10 22C12 22.5 14 22.5 16 22C18 21.5 20 21.5 22 22" strokeWidth="1.5" opacity="0.8" />
-                  </svg>
-                </div>
-              )}
-            </div>
-            <span className="font-heading font-bold text-white tracking-wide text-sm hidden sm:inline truncate">
-              {initialBrandName || t.loginTitle}
-            </span>
-          </div>
-
-          {/* 顶部操作中心 */}
-          <div className="flex items-center gap-2">
-            {/* 添加书签 */}
-            <button
-              onClick={() => {
-                setEditingIcon(null);
-                setIsEditIconOpen(true);
-              }}
-              className="flex items-center justify-center p-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 active:scale-95 transition text-white shadow-md shadow-indigo-500/10 cursor-pointer"
-              title={t.addBookmark}
-            >
-              <Plus size={16} />
-            </button>
-
-            {/* 分组管理 */}
-            <button
-              onClick={() => setIsGroupManageOpen(true)}
-              className="flex items-center justify-center p-2 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 active:scale-95 transition text-white/80 cursor-pointer"
-              title="分组管理"
-            >
-              <FolderEdit size={16} />
-            </button>
-
-            {/* 全局设置 */}
-            <button
-              onClick={() => setIsSettingsOpen(true)}
-              className="flex items-center justify-center p-2 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 active:scale-95 transition text-white/80 cursor-pointer"
-              title={t.settings}
-            >
-              <Settings size={16} />
-            </button>
-
-            <div className="w-px h-6 bg-white/10 mx-1" />
-
-            {/* 用户及退出 */}
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full border border-white/10 bg-white/5 overflow-hidden flex items-center justify-center">
-                {currentUser.headImage ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={currentUser.headImage} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-xs font-heading font-bold text-indigo-400">
-                    {currentUser.name?.substring(0, 1).toUpperCase() || 'U'}
-                  </span>
-                )}
+      {/* 顶部导航条：品牌 + Tab 条 + 操作 单行紧凑布局 */}
+      <header className="w-full border-b border-white/5 bg-[#0a0b10]/60 backdrop-blur-xl sticky top-0 z-40 px-4 py-2 flex items-center gap-3">
+        {/* 品牌 */}
+        <div className="flex items-center gap-2.5 shrink-0 min-w-0">
+          <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
+            {initialBrandIcon ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={initialBrandIcon} alt="" className="w-full h-full object-contain" />
+            ) : (
+              <div className="w-full h-full rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-md flex items-center justify-center text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5">
+                  <circle cx="7" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" />
+                  <path d="M7 2V3M7 11V12M2 7H3M11 7H12" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
+                  <path d="M18 20C17.5 15.5 16 11.5 13 9" />
+                  <path d="M13 9C10.5 8.5 8 9.5 7 11.5" />
+                  <path d="M13 9C11 7 9.5 5 11 3" />
+                  <path d="M13 9C14.5 7 16.5 6.5 18.5 7.5" />
+                  <path d="M13 9C15.5 10 17 11.5 17.5 13.5" />
+                  <path d="M13 9C13 11 12 13 10.5 14" />
+                  <path d="M2 20C5 18 13 17 22 20" />
+                  <path d="M4 22C6 21.5 8 21.5 10 22C12 22.5 14 22.5 16 22C18 21.5 20 21.5 22 22" strokeWidth="1.5" opacity="0.8" />
+                </svg>
               </div>
-              <button
-                onClick={handleLogout}
-                className="p-2 rounded-xl hover:bg-red-500/10 text-white/40 hover:text-red-400 transition cursor-pointer"
-                title={t.logout}
-              >
-                <LogOut size={16} />
-              </button>
-            </div>
+            )}
           </div>
+          <span className="font-heading font-bold text-white tracking-wide text-sm hidden md:inline truncate max-w-[140px]">
+            {initialBrandName || t.loginTitle}
+          </span>
         </div>
 
-        {/* 第二行：导航 Tab 条 */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pr-2">
+        {/* 导航 Tab 条（可横向滚动，居中占据剩余空间） */}
+        <nav className="flex-1 min-w-0 flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
           {tabs.map((tab) => {
             const isActive = tab.id === activeTab.id;
             const Icon = tab.type === 'list' ? List : LayoutGrid;
@@ -560,10 +502,10 @@ export default function Dashboard({
               <button
                 key={tab.id}
                 onClick={() => handleSelectTab(tab.id)}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer whitespace-nowrap shrink-0 border ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer whitespace-nowrap shrink-0 ${
                   isActive
-                    ? 'bg-white/10 text-white font-semibold border-white/10'
-                    : 'text-white/55 hover:text-white hover:bg-white/5 border-transparent'
+                    ? 'bg-white/10 text-white font-semibold'
+                    : 'text-white/55 hover:text-white hover:bg-white/5'
                 }`}
               >
                 <Icon size={12} className={isActive ? 'text-indigo-300' : 'text-white/35'} />
@@ -573,19 +515,74 @@ export default function Dashboard({
           })}
           <button
             onClick={() => setIsTabManageOpen(true)}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-dashed border-white/10 hover:border-indigo-500/40 hover:text-indigo-300 transition text-white/45 text-xs whitespace-nowrap shrink-0 cursor-pointer"
+            className="flex items-center justify-center w-6.5 h-6.5 rounded-lg border border-dashed border-white/15 hover:border-indigo-500/40 hover:text-indigo-300 transition text-white/45 shrink-0 cursor-pointer"
             title={t.manageTabs}
           >
-            <Plus size={12} />
-            <span>{t.manageTabs}</span>
+            <Plus size={13} />
           </button>
+        </nav>
+
+        {/* 操作中心 */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* 添加书签 */}
+          <button
+            onClick={() => {
+              setEditingIcon(null);
+              setIsEditIconOpen(true);
+            }}
+            className="flex items-center justify-center p-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 active:scale-95 transition text-white shadow-md shadow-indigo-500/10 cursor-pointer"
+            title={t.addBookmark}
+          >
+            <Plus size={15} />
+          </button>
+
+          {/* 分组管理 */}
+          <button
+            onClick={() => setIsGroupManageOpen(true)}
+            className="flex items-center justify-center p-2 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 active:scale-95 transition text-white/80 cursor-pointer"
+            title="分组管理"
+          >
+            <FolderEdit size={15} />
+          </button>
+
+          {/* 全局设置 */}
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="flex items-center justify-center p-2 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 active:scale-95 transition text-white/80 cursor-pointer"
+            title={t.settings}
+          >
+            <Settings size={15} />
+          </button>
+
+          <div className="w-px h-5 bg-white/10 mx-0.5" />
+
+          {/* 用户及退出 */}
+          <div className="flex items-center gap-1.5">
+            <div className="w-7 h-7 rounded-full border border-white/10 bg-white/5 overflow-hidden flex items-center justify-center">
+              {currentUser.headImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={currentUser.headImage} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-xs font-heading font-bold text-indigo-400">
+                  {currentUser.name?.substring(0, 1).toUpperCase() || 'U'}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition cursor-pointer"
+              title={t.logout}
+            >
+              <LogOut size={15} />
+            </button>
+          </div>
         </div>
       </header>
 
       {/* 主工作区 */}
       <main className="max-w-[1240px] w-full mx-auto px-6 mt-10 grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-10 items-start">
         {/* 左侧锚点导航 (分组指示条) */}
-        <aside className="hidden lg:flex flex-col gap-1.5 sticky top-36 bg-[#12131a]/30 border border-white/5 rounded-2xl p-4 backdrop-blur-md">
+        <aside className="hidden lg:flex flex-col gap-1.5 sticky top-20 bg-[#12131a]/30 border border-white/5 rounded-2xl p-4 backdrop-blur-md">
           <h3 className="text-[10px] font-bold text-white/30 uppercase tracking-widest px-2 mb-2">分组导航</h3>
           {tabGroups.map((g) => {
             const isActive = activeGroupScroll === g.id;
@@ -636,7 +633,7 @@ export default function Dashboard({
               const isCollapsed = collapsedGroups.has(group.id);
 
               return (
-                <div key={group.id} id={`group-${group.id}`} className="scroll-mt-40">
+                <div key={group.id} id={`group-${group.id}`} className="scroll-mt-24">
                   {/* 分组标题行 — 点击折叠/展开 */}
                   <button
                     onClick={() => toggleGroupCollapse(group.id)}

@@ -15,7 +15,7 @@ import {
   SortableContext,
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Pin, Edit2, Trash2, Copy, MoreVertical, Eye } from 'lucide-react';
+import { Pin, Edit2, Trash2, Copy, MoreVertical, ExternalLink } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useTranslation } from './I18nProvider';
 import {
@@ -112,6 +112,8 @@ function SortableItem({
   });
   const { t } = useTranslation();
   const [copiedTip, setCopiedTip] = useState(false);
+  // 右键菜单锚点（光标位置），null = 关闭
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -142,7 +144,10 @@ function SortableItem({
 
   const handleContextMenu = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.controls-btn, .controls-menu')) return;
+    // 在光标位置弹出操作菜单
     e.preventDefault();
+    e.stopPropagation();
+    setCtxMenu({ x: e.clientX, y: e.clientY });
   };
 
   const handleCopy = async (e: React.MouseEvent) => {
@@ -152,6 +157,22 @@ function SortableItem({
       setCopiedTip(true);
       setTimeout(() => setCopiedTip(false), 1600);
     } catch (err) {}
+  };
+
+  const openRaw = (raw: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    const link = document.createElement('a');
+    link.href = raw;
+    link.referrerPolicy = 'no-referrer';
+    link.rel = 'noopener noreferrer';
+    if (iconItem.openMethod === 1) {
+      link.target = '_blank';
+    } else {
+      link.target = '_self';
+    }
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const isLocalIcon =
@@ -180,58 +201,93 @@ function SortableItem({
     </div>
   );
 
-  // 通用悬浮菜单按钮（card 与 list 共用）
+  // 通用菜单项（⋯ 按钮与右键菜单共用）
+  const menuItems = (
+    <>
+      <DropdownMenuItem
+        onClick={(e) => { e.stopPropagation(); onEdit(iconItem); }}
+        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer text-xs"
+      >
+        <Edit2 size={13} />
+        <span>{t.cardMenuEdit}</span>
+      </DropdownMenuItem>
+      <DropdownMenuItem
+        onClick={(e) => { e.stopPropagation(); onTogglePin?.(iconItem); }}
+        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer text-xs"
+      >
+        <Pin size={13} />
+        <span>{iconItem.pinned ? t.cardMenuUnpin : t.cardMenuPin}</span>
+      </DropdownMenuItem>
+      <DropdownMenuItem
+        onClick={handleCopy}
+        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer text-xs"
+      >
+        <Copy size={13} />
+        <span>{copiedTip ? t.copied : t.cardMenuCopyLink}</span>
+      </DropdownMenuItem>
+      {iconItem.lanUrl && (
+        <DropdownMenuItem
+          onClick={(e) => openRaw(resolveOpenUrl(iconItem.lanUrl!, '', false), e)}
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer text-xs"
+        >
+          <ExternalLink size={13} />
+          <span>{t.openLanUrl}</span>
+        </DropdownMenuItem>
+      )}
+      <DropdownMenuItem
+        variant="destructive"
+        onClick={(e) => { e.stopPropagation(); onDelete(iconItem.id); }}
+        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-red-500/15 cursor-pointer text-xs"
+      >
+        <Trash2 size={13} />
+        <span>{t.cardMenuDelete}</span>
+      </DropdownMenuItem>
+    </>
+  );
+
+  // ⋯ 按钮下拉
   const renderMenu = (btnSize: number) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
           onClick={(e) => e.stopPropagation()}
-          className={`controls-menu p-1.5 rounded-lg border border-white/5 bg-white/5 hover:bg-indigo-500/20 hover:text-indigo-300 transition text-white/40 cursor-pointer`}
+          className="controls-menu p-1.5 rounded-lg border border-white/5 bg-white/5 hover:bg-indigo-500/20 hover:text-indigo-300 transition text-white/40 cursor-pointer"
           title={t.actions}
         >
           <MoreVertical size={btnSize} />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="bg-[#12131a]/95 border-white/10 text-white/85 p-1 rounded-xl min-w-[160px]">
-        <DropdownMenuItem
-          onClick={(e) => { e.stopPropagation(); onEdit(iconItem); }}
-          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer text-xs"
-        >
-          <Edit2 size={13} />
-          <span>{t.cardMenuEdit}</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={(e) => { e.stopPropagation(); onTogglePin?.(iconItem); }}
-          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer text-xs"
-        >
-          <Pin size={13} />
-          <span>{iconItem.pinned ? t.cardMenuUnpin : t.cardMenuPin}</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={handleCopy}
-          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer text-xs"
-        >
-          <Copy size={13} />
-          <span>{copiedTip ? t.copied : t.cardMenuCopyLink}</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={(e) => { e.stopPropagation(); window.alert(`${t.addressNow}: ${openUrl}`); }}
-          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer text-xs"
-        >
-          <Eye size={13} />
-          <span>{t.cardMenuViewAddress}</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          variant="destructive"
-          onClick={(e) => { e.stopPropagation(); onDelete(iconItem.id); }}
-          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-red-500/15 cursor-pointer text-xs"
-        >
-          <Trash2 size={13} />
-          <span>{t.cardMenuDelete}</span>
-        </DropdownMenuItem>
+        {menuItems}
       </DropdownMenuContent>
     </DropdownMenu>
   );
+
+  // 右键菜单（固定在光标处）
+  const renderContextMenu = () => {
+    if (!ctxMenu) return null;
+    return (
+      <DropdownMenu
+        open
+        onOpenChange={(open) => { if (!open) setCtxMenu(null); }}
+      >
+        <DropdownMenuTrigger asChild>
+          <span
+            className="pointer-events-none"
+            style={{ position: 'fixed', left: ctxMenu.x, top: ctxMenu.y, width: 1, height: 1 }}
+          />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="start"
+          side="bottom"
+          sideOffset={2}
+          className="bg-[#12131a]/95 border-white/10 text-white/85 p-1 rounded-xl min-w-[160px]"
+        >
+          {menuItems}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
 
   // ==== list 模式：信息流行条目 ====
   if (tabType === 'list') {
@@ -345,6 +401,7 @@ function SortableItem({
         <div className="absolute right-4 flex items-center gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
           {renderMenu(13)}
         </div>
+        {renderContextMenu()}
       </div>
     );
   }
@@ -376,11 +433,13 @@ function SortableItem({
         ) : iconItem.widgetType === 'uptime-kuma' ? (
           <UptimeKumaWidget title={iconItem.title} stats={statsObj?.data} url={iconItem.url} error={statsObj?.success === false ? statsObj.error : undefined} isLoading={!!isWidgetsLoading} />
         ) : null}
+        {renderContextMenu()}
       </div>
     );
   }
 
   // 普通书签卡片：单层布局，hover 仅 border/底色
+  const subtitle = iconItem.description || null;
   return (
     <div
       ref={setNodeRef}
@@ -397,7 +456,7 @@ function SortableItem({
       </div>
 
       {/* 图标 + 名称（居中） */}
-      <div className="relative mb-2">
+      <div className={`relative ${subtitle ? 'mb-1.5' : 'mb-2'}`}>
         <div className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center border border-white/5">
           {isLocalIcon ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -424,6 +483,13 @@ function SortableItem({
       >
         {iconItem.title}
       </h4>
+
+      {subtitle && (
+        <p className="text-[10px] text-white/40 mt-1 w-full min-w-0 px-4 text-center truncate" title={subtitle}>
+          {subtitle}
+        </p>
+      )}
+      {renderContextMenu()}
     </div>
   );
 }

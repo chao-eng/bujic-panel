@@ -382,7 +382,7 @@ export default function GroupManageModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent aria-describedby={undefined} className="sm:max-w-[520px] bg-[#12131a]/95 border border-white/5 text-white/90 rounded-2xl backdrop-blur-xl">
+      <DialogContent aria-describedby={undefined} className="sm:max-w-[520px] bg-[#12131a]/95 border border-white/5 text-white/90 rounded-2xl backdrop-blur-xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-heading text-lg font-bold text-white flex items-center justify-between pr-8">
             <span>{t.groupManage}</span>

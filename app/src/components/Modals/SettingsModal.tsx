@@ -403,14 +403,14 @@ export default function SettingsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent aria-describedby={undefined} className="sm:max-w-[720px] bg-[#12131a]/95 border border-white/5 text-white/90 rounded-2xl backdrop-blur-xl p-0 overflow-hidden">
-        <DialogHeader className="p-6 pb-2">
+      <DialogContent aria-describedby={undefined} className="sm:max-w-[720px] bg-[#12131a]/95 border border-white/5 text-white/90 rounded-2xl backdrop-blur-xl p-0 max-h-[85vh] overflow-y-auto">
+        <DialogHeader className="p-6 pb-2 sticky top-0 z-10 bg-[#12131a]/95 backdrop-blur-xl">
           <DialogTitle className="font-heading text-lg font-bold text-white flex items-center gap-2">
             <span>{t.settings}</span>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="px-6 pb-6">
+        <div className="px-6 pb-8">
           <Tabs defaultValue="profile" className="w-full text-sm">
             <TabsList className="bg-white/5 border border-white/5 w-full h-auto justify-start rounded-xl p-1 mb-4 flex flex-nowrap overflow-x-auto whitespace-nowrap scrollbar-none">
               <TabsTrigger value="profile" className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg data-[state=active]:bg-indigo-500 data-[state=active]:text-white text-xs cursor-pointer shrink-0">

@@ -164,7 +164,7 @@ export default function LoginPage() {
               {isPending ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  <span>{t.fetching}</span>
+                  <span>{t.loggingIn}</span>
                 </>
               ) : (
                 <>

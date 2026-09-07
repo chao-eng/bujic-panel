@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 export const dictionaries = {
   zh: {
     login: '登录',
+    loggingIn: '登录中...',
     logout: '退出登录',
     username: '用户名',
     password: '密码',
@@ -126,6 +127,7 @@ export const dictionaries = {
     copied: '已复制到剪贴板',
     openLanAddress: '当前为内网，将打开内网地址',
     openPublicAddress: '当前为外网，将打开公网地址',
+    openLanUrl: '打开内网地址',
     lanUrl: '内网地址',
     lanUrlPlaceholder: '可选，填写内网地址或仅填主机如 192.168.31.202:8096',
     addressNow: '当前将访问',
@@ -150,6 +152,7 @@ export const dictionaries = {
   },
   en: {
     login: 'Login',
+    loggingIn: 'Signing in...',
     logout: 'Logout',
     username: 'Username',
     password: 'Password',
@@ -273,6 +276,7 @@ export const dictionaries = {
     copied: 'Copied to clipboard',
     openLanAddress: 'On LAN, will open the internal address',
     openPublicAddress: 'On internet, will open the public address',
+    openLanUrl: 'Open LAN URL',
     lanUrl: 'LAN URL',
     lanUrlPlaceholder: 'Optional LAN address or host like 192.168.31.202:8096',
     addressNow: 'Will open',

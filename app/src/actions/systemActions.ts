@@ -28,6 +28,7 @@ export async function saveSiteBrandAction(data: { name: string; icon: string }) 
   const brand = {
     name: (data.name || '').trim().slice(0, 40),
     icon: (data.icon || '').trim(),
+    v: Date.now(), // 版本号用于 favicon 缓存刷新
   };
 
   await upsertSystemSetting(SITE_BRAND_KEY, JSON.stringify(brand));

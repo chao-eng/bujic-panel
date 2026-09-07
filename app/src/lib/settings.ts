@@ -29,9 +29,11 @@ export async function upsertSystemSetting(name: string, value: string) {
 export interface SiteBrand {
   name: string;
   icon: string;
+  // 更新时间戳，用于 favicon 缓存刷新（如 /uploads/xxx?v=123）
+  v?: number;
 }
 
-export const DEFAULT_BRAND: SiteBrand = { name: '', icon: '' };
+export const DEFAULT_BRAND: SiteBrand = { name: '', icon: '', v: 0 };
 
 export async function getSiteBrand(): Promise<SiteBrand> {
   const raw = await getSystemSettingValue(SITE_BRAND_KEY);
@@ -41,10 +43,18 @@ export async function getSiteBrand(): Promise<SiteBrand> {
     return {
       name: parsed?.name || '',
       icon: parsed?.icon || '',
+      v: parsed?.v || 0,
     };
   } catch (e) {
     return { ...DEFAULT_BRAND };
   }
+}
+
+/** 拼接带版本号的图标 URL（用于浏览器 favicon 强缓存刷新） */
+export function brandIconWithVersion(icon: string, v: number): string {
+  if (!icon) return icon;
+  const sep = icon.includes('?') ? '&' : '?';
+  return v ? `${icon}${sep}v=${v}` : icon;
 }
 
 // 内网网段数组（空 = 未启用内网判定）

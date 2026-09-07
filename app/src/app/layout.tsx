@@ -3,6 +3,7 @@ import { Outfit, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { I18nProvider } from '../components/I18nProvider';
 import { db } from '../lib/db';
+import { brandIconWithVersion } from '../lib/settings';
 
 // Outfit 设计师英文字体做大标题与强调字
 const outfit = Outfit({
@@ -25,10 +26,13 @@ async function getBrand() {
     });
     if (setting?.configValue) {
       const parsed = JSON.parse(setting.configValue);
-      return { name: parsed?.name || '', icon: parsed?.icon || '' };
+      return {
+        name: parsed?.name || '',
+        icon: brandIconWithVersion(parsed?.icon || '', parsed?.v || 0),
+      };
     }
   } catch (e) {}
-  return { name: '', icon: '' };
+  return { name: '', icon: '/logo.svg' };
 }
 
 export async function generateMetadata(): Promise<Metadata> {

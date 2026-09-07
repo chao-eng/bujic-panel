@@ -26,6 +26,7 @@ import {
   ChevronDown,
   LayoutGrid,
   List,
+  Languages,
 } from 'lucide-react';
 
 interface GroupType {
@@ -84,7 +85,7 @@ export default function Dashboard({
   initialBrandName,
   initialBrandIcon,
 }: DashboardProps) {
-  const { t } = useTranslation();
+  const { t, locale, setLocale } = useTranslation();
   const [currentUser, setCurrentUser] = useState(user);
   const [tabs, setTabs] = useState<ViewTabType[]>(initialTabs);
   const [groups, setGroups] = useState<GroupType[]>(initialGroups);
@@ -553,6 +554,18 @@ export default function Dashboard({
             title={t.settings}
           >
             <Settings size={15} />
+          </button>
+
+          {/* 语言切换 */}
+          <button
+            onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
+            className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 active:scale-95 transition text-white/80 cursor-pointer"
+            title={t.language}
+          >
+            <Languages size={15} />
+            <span className="text-xs font-medium hidden sm:inline">
+              {locale === 'zh' ? 'English' : '简体中文'}
+            </span>
           </button>
 
           <div className="w-px h-5 bg-white/10 mx-0.5" />

@@ -13,6 +13,28 @@ const ALLOWED_TYPES = new Set([
   'image/avif',
 ]);
 
+function sniffImageType(buf: ArrayBuffer): string | null {
+  if (buf.byteLength < 4) return null;
+  const v = new Uint8Array(buf);
+  if (v[0] === 0x00 && v[1] === 0x00 && v[2] === 0x01 && v[3] === 0x00) return 'image/x-icon';
+  if (v[0] === 0x89 && v[1] === 0x50 && v[2] === 0x4e && v[3] === 0x47) return 'image/png';
+  if (v[0] === 0xff && v[1] === 0xd8 && v[2] === 0xff) return 'image/jpeg';
+  if (v[0] === 0x47 && v[1] === 0x49 && v[2] === 0x46 && v[3] === 0x38) return 'image/gif';
+  if (v[0] === 0x52 && v[1] === 0x49 && v[2] === 0x46 && v[3] === 0x46) {
+    if (v[8] === 0x57 && v[9] === 0x45 && v[10] === 0x42 && v[11] === 0x50) return 'image/webp';
+  }
+  if (v[0] === 0x42 && v[1] === 0x4d) return 'image/bmp';
+  if (v[4] === 0x66 && v[5] === 0x74 && v[6] === 0x79 && v[7] === 0x70) {
+    const brand = String.fromCharCode(v[8] || 0, v[9] || 0, v[10] || 0, v[11] || 0);
+    if (brand === 'avif' || brand === 'avis') return 'image/avif';
+  }
+  const head = new TextDecoder().decode(v.slice(0, 512)).toLowerCase();
+  if (head.trimStart().startsWith('<') && (head.includes('<svg') || head.includes('<?xml'))) {
+    return 'image/svg+xml';
+  }
+  return null;
+}
+
 // GET /api/icon-proxy?u=<url> —— 同源图标代理
 // 解决 HTTPS 页面加载 http:// 远程图标时的 Mixed Content 拦截。
 export async function GET(req: NextRequest) {
@@ -56,14 +78,15 @@ export async function GET(req: NextRequest) {
       return new NextResponse('Not Found', { status: 404 });
     }
 
-    const contentType = res.headers.get('content-type') || '';
-    if (!ALLOWED_TYPES.has(contentType.split(';')[0].trim())) {
-      return new NextResponse('Not an image', { status: 415 });
-    }
-
+    const headerType = (res.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
     const buffer = await res.arrayBuffer();
     if (buffer.byteLength > 2 * 1024 * 1024) {
       return new NextResponse('Too Large', { status: 413 });
+    }
+
+    const contentType = ALLOWED_TYPES.has(headerType) ? headerType : sniffImageType(buffer);
+    if (!contentType) {
+      return new NextResponse('Not an image', { status: 415 });
     }
 
     return new NextResponse(Buffer.from(buffer), {

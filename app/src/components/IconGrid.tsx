@@ -158,24 +158,50 @@ function SortableItem({
       setCopiedTip(true);
       setTimeout(() => setCopiedTip(false), 1600);
     };
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        // 仅安全上下文（HTTPS/localhost）下 Clipboard API 可用
+    // 先试 Clipboard API（仅安全上下文可用）
+    let ok = false;
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
         await navigator.clipboard.writeText(openUrl);
-      } else {
-        // HTTP 内网等非安全上下文：降级使用 execCommand 同步复制
-        const textarea = document.createElement('textarea');
-        textarea.value = openUrl;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        const ok = document.execCommand('copy');
-        textarea.remove();
-        if (!ok) throw new Error('execCommand copy failed');
+        ok = true;
+      } catch {
+        ok = false;
       }
-      showCopied();
-    } catch (err) {}
+    }
+    if (!ok) {
+      // HTTP 内网等非安全上下文：
+      // execCommand('copy') 依赖当前选区，隐藏 textarea 的 select() 在菜单场景下会得到空选区。
+      // 这里改为劫持一次 copy 事件，把链接直接写入 clipboardData，不依赖选区。
+      const onCopy = (ev: ClipboardEvent) => {
+        ev.preventDefault();
+        ev.clipboardData?.setData('text/plain', openUrl);
+        document.removeEventListener('copy', onCopy);
+      };
+      document.addEventListener('copy', onCopy);
+      try {
+        // 需要一个"选中"的触发源，execCommand 才会派发 copy 事件；
+        // 用可见极小元素避免空选区被忽略。
+        const probe = document.createElement('textarea');
+        probe.value = openUrl;
+        probe.setAttribute('readonly', '');
+        probe.style.position = 'fixed';
+        probe.style.top = '0';
+        probe.style.left = '0';
+        probe.style.width = '2px';
+        probe.style.height = '2px';
+        probe.style.opacity = '0.01';
+        document.body.appendChild(probe);
+        probe.focus();
+        probe.select();
+        probe.setSelectionRange(0, probe.value.length);
+        ok = document.execCommand('copy');
+        probe.remove();
+      } catch {
+        ok = false;
+      }
+      document.removeEventListener('copy', onCopy);
+    }
+    if (ok) showCopied();
   };
 
   const openRaw = (raw: string, e?: React.MouseEvent) => {

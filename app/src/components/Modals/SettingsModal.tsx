@@ -126,7 +126,7 @@ export default function SettingsModal({
         .then((res) => res.json())
         .then((data) => {
           if (data.code === 0) {
-            setDisclaimer(data.data.disclaimer || t.noDisclaimer);
+            setDisclaimer(data.data.disclaimer || t.defaultDisclaimer);
             setAboutText(data.data.about || t.defaultAboutText);
           }
         })

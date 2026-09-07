@@ -18,6 +18,7 @@ import { editGroupAction, getGroupsAction } from '../actions/groupActions';
 import { getTabsAction, editTabAction } from '../actions/tabActions';
 import { logoutAction } from '../actions/userActions';
 import { safeIconSrc } from '../lib/iconSrc';
+import { resolvePollMs } from '../lib/widgetPoll';
 import {
   Settings,
   FolderEdit,
@@ -149,28 +150,36 @@ export default function Dashboard({
   // 监控数据状态
   const [widgetsStats, setWidgetsStats] = useState<Record<number, any>>({});
   const [isWidgetsLoading, setIsWidgetsLoading] = useState(false);
+  const [pageVisible, setPageVisible] = useState(true);
 
-  // 监控数据周期轮询
+  // 页面隐藏时暂停轮询，回到前台立即恢复
   useEffect(() => {
-    const widgetIds = icons
-      .filter((icon) => icon.widgetType)
-      .map((icon) => icon.id);
+    const onVisibilityChange = () => setPageVisible(document.visibilityState === 'visible');
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, []);
 
-    if (widgetIds.length === 0) {
+  // 监控数据按每个组件配置的刷新间隔轮询（仅页面可见时运行）
+  useEffect(() => {
+    if (!pageVisible) return;
+
+    const widgetIcons = icons.filter((icon) => icon.widgetType);
+    if (widgetIcons.length === 0) {
       setWidgetsStats({});
       return;
     }
 
-    let timer: NodeJS.Timeout;
+    const timers: NodeJS.Timeout[] = [];
 
-    const fetchStats = async (showLoading = false) => {
+    // 拉取指定 id 集合，合并进 stats（互不覆盖对方档位的数据）
+    const fetchStats = async (ids: number[], showLoading = false) => {
       if (showLoading) setIsWidgetsLoading(true);
       try {
-        const res = await fetch(`/api/widgets/stats?ids=${widgetIds.join(',')}`);
+        const res = await fetch(`/api/widgets/stats?ids=${ids.join(',')}`);
         if (res.ok) {
           const json = await res.json();
-          if (json.code === 0) {
-            setWidgetsStats(json.data);
+          if (json.code === 0 && json.data) {
+            setWidgetsStats((prev) => ({ ...prev, ...json.data }));
           }
         }
       } catch (e) {
@@ -180,14 +189,22 @@ export default function Dashboard({
       }
     };
 
-    fetchStats(true);
+    // 按实际刷新间隔（ms）分组，相同间隔共用一条定时器
+    const buckets = new Map<number, number[]>();
+    for (const icon of widgetIcons) {
+      const ms = resolvePollMs(icon.widgetType, icon.widgetSettings);
+      const arr = buckets.get(ms) || [];
+      arr.push(icon.id);
+      buckets.set(ms, arr);
+    }
 
-    timer = setInterval(() => {
-      fetchStats(false);
-    }, 10000);
+    for (const [ms, ids] of buckets) {
+      fetchStats(ids, true);
+      timers.push(setInterval(() => fetchStats(ids, false), ms));
+    }
 
-    return () => clearInterval(timer);
-  }, [icons]);
+    return () => timers.forEach((timer) => clearInterval(timer));
+  }, [icons, pageVisible]);
 
   // 切换激活 Tab 记忆
   const handleSelectTab = (id: number) => {

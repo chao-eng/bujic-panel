@@ -17,6 +17,7 @@ import { Switch } from '../ui/switch';
 import { Loader2, Globe, Sparkles, Upload } from 'lucide-react';
 import { encryptSensitive } from '../../lib/client-crypto';
 import { safeIconSrc } from '../../lib/iconSrc';
+import { resolvePollMs, normalizePollMsSec } from '../../lib/widgetPoll';
 
 interface GroupType {
   id: number;
@@ -92,6 +93,8 @@ export default function EditIconModal({
   const [umamiDomain, setUmamiDomain] = useState('');
   const [wgEasyPassword, setWgEasyPassword] = useState('');
   const [kumaSlug, setKumaSlug] = useState('default');
+  // 刷新间隔（秒）：空 = 使用类型默认
+  const [pollSec, setPollSec] = useState('');
 
   // 目标 Tab 状态（两级联动）
   const [tabId, setTabId] = useState<number>(0);
@@ -140,6 +143,8 @@ export default function EditIconModal({
       setWidgetType(editingIcon.widgetType || '');
       try {
         const settings = JSON.parse(editingIcon.widgetSettings || '{}');
+        const existingPollMs = settings.pollMs;
+        setPollSec(existingPollMs ? String(Math.round(existingPollMs / 1000)) : '');
         if (editingIcon.widgetType === 'beszel') {
           setBeszelEmail(settings.email || '');
           setBeszelPassword(settings.password || '');
@@ -388,6 +393,11 @@ export default function EditIconModal({
             slug: kumaSlug,
           };
         }
+        // 追加自定义刷新间隔（秒 → 毫秒），留空则保存时不带 pollMs 字段以走类型默认
+        if (widgetType && pollSec.trim()) {
+          const pollMs = normalizePollMsSec(Number(pollSec));
+          if (pollMs) settingsObj.pollMs = pollMs;
+        }
         const settingsJson = JSON.stringify(settingsObj);
         // 加密 widgetSettings，防止凭证明文出现在网络请求中
         const encryptedSettings = settingsObj && Object.keys(settingsObj).length > 0
@@ -479,6 +489,23 @@ export default function EditIconModal({
               <option value="uptime-kuma" className="bg-[#12131a] text-white">监控组件 (Uptime Kuma)</option>
             </select>
           </div>
+
+          {/* 监控组件刷新间隔（可选） */}
+          {widgetType !== '' && (
+            <div className="space-y-1.5">
+              <Label className="text-white/60 text-xs font-medium">{t.pollInterval}</Label>
+              <Input
+                type="number"
+                min={2}
+                max={300}
+                placeholder={String(Math.round(resolvePollMs(widgetType) / 1000))}
+                value={pollSec}
+                onChange={(e) => setPollSec(e.target.value)}
+                className="bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20 text-xs"
+              />
+              <p className="text-[10px] text-white/30">{t.pollIntervalHint}</p>
+            </div>
+          )}
 
           {/* 目标链接 */}
           <div className="space-y-1.5">

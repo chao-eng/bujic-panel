@@ -132,6 +132,9 @@ export const dictionaries = {
     lanUrl: '内网地址',
     lanUrlPlaceholder: '可选，填写内网地址或仅填主机如 192.168.31.202:8096',
     addressNow: '当前将访问',
+    // ===== 监控组件刷新间隔 =====
+    pollInterval: '刷新间隔（秒）',
+    pollIntervalHint: '状态拉取频率，留空使用默认（数值类 5 秒，计数类 30 秒）',
     // ===== 站点品牌 =====
     siteBrand: '站点品牌',
     siteName: '站点名称',
@@ -282,6 +285,9 @@ export const dictionaries = {
     lanUrl: 'LAN URL',
     lanUrlPlaceholder: 'Optional LAN address or host like 192.168.31.202:8096',
     addressNow: 'Will open',
+    // ===== Widget refresh interval =====
+    pollInterval: 'Refresh interval (seconds)',
+    pollIntervalHint: 'How often to refresh stats. Leave blank for defaults (5s realtime types, 30s counter types)',
     // ===== Site brand =====
     siteBrand: 'Site Brand',
     siteName: 'Site Name',

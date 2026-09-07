@@ -41,6 +41,17 @@ CREATE TABLE "item_icon" (
 );
 
 -- CreateTable
+CREATE TABLE "view_tab" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" DATETIME NOT NULL,
+    "name" TEXT NOT NULL,
+    "type" TEXT NOT NULL DEFAULT 'card',
+    "sort" INTEGER NOT NULL DEFAULT 1,
+    "user_id" INTEGER NOT NULL
+);
+
+-- CreateTable
 CREATE TABLE "item_icon_group" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -50,6 +61,7 @@ CREATE TABLE "item_icon_group" (
     "description" TEXT,
     "sort" INTEGER NOT NULL DEFAULT 1,
     "group_type" TEXT NOT NULL DEFAULT 'website',
+    "tab_id" INTEGER NOT NULL DEFAULT 0,
     "user_id" INTEGER NOT NULL
 );
 
@@ -113,7 +125,10 @@ CREATE UNIQUE INDEX "system_setting_config_name_key" ON "system_setting"("config
 CREATE INDEX "item_icon_url_user_id_idx" ON "item_icon"("url", "user_id");
 
 -- CreateIndex
-CREATE INDEX "item_icon_group_user_id_group_type_idx" ON "item_icon_group"("user_id", "group_type");
+CREATE INDEX "view_tab_user_id_sort_idx" ON "view_tab"("user_id", "sort");
+
+-- CreateIndex
+CREATE INDEX "item_icon_group_user_id_tab_id_idx" ON "item_icon_group"("user_id", "tab_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "module_config_user_id_name_key" ON "module_config"("user_id", "name");

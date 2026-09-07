@@ -54,12 +54,21 @@ async function main() {
   // 2. 初始化示例分组与站点/书签 (如果没有分组数据)
   const groupCount = await prisma.itemIconGroup.count();
   if (groupCount === 0) {
+    // 先为管理员建默认导航 Tab（旧示例数据全部卡片形态）
+    const cardTab = await prisma.viewTab.create({
+      data: { name: '收藏', type: 'card', sort: 1, userId: adminUserId },
+    });
+    const listTab = await prisma.viewTab.create({
+      data: { name: '书签', type: 'list', sort: 2, userId: adminUserId },
+    });
+
     // 创建分组
     const group1 = await prisma.itemIconGroup.create({
       data: {
         title: '常用网站',
         sort: 1,
         groupType: 'website',
+        tabId: cardTab.id,
         icon: 'material-symbols:language',
         userId: adminUserId,
       },
@@ -69,6 +78,7 @@ async function main() {
         title: '技术博客',
         sort: 2,
         groupType: 'website',
+        tabId: cardTab.id,
         icon: 'material-symbols:book',
         userId: adminUserId,
       },
@@ -78,7 +88,18 @@ async function main() {
         title: '视频娱乐',
         sort: 3,
         groupType: 'website',
+        tabId: cardTab.id,
         icon: 'material-symbols:web-asset',
+        userId: adminUserId,
+      },
+    });
+    const webpageGroup = await prisma.itemIconGroup.create({
+      data: {
+        title: '深度阅读',
+        sort: 4,
+        groupType: 'webpage',
+        tabId: listTab.id,
+        icon: 'material-symbols:book',
         userId: adminUserId,
       },
     });
@@ -159,7 +180,7 @@ async function main() {
           url: 'https://www.toutiao.com/',
           iconJson: toutiaoIcon,
           description: '实时科技资讯',
-          itemIconGroupId: group2.id,
+          itemIconGroupId: webpageGroup.id,
           userId: adminUserId,
           sort: 10,
         },
@@ -168,7 +189,7 @@ async function main() {
           url: 'https://www.runoob.com/',
           iconJson: runoobIcon,
           description: '入门编程教程',
-          itemIconGroupId: group2.id,
+          itemIconGroupId: webpageGroup.id,
           userId: adminUserId,
           sort: 11,
         },
@@ -186,7 +207,7 @@ async function main() {
           url: 'https://www.v2ex.com/',
           iconJson: v2exIcon,
           description: '程序员讨论社区',
-          itemIconGroupId: group2.id,
+          itemIconGroupId: webpageGroup.id,
           userId: adminUserId,
           sort: 12,
         },

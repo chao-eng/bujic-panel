@@ -3,11 +3,14 @@
 import { db } from '../lib/db';
 import { getCurrentUser } from '../lib/auth';
 import { revalidatePath } from 'next/cache';
+import { ensureUserTabs } from '../lib/nav';
 
 // 获取分组列表 (带初始化兜底)
 export async function getGroupsAction() {
   const user = await getCurrentUser();
   if (!user) throw new Error('Unauthorized');
+
+  await ensureUserTabs(user.id);
 
   // 获取该用户的所有分组
   let groups = await db.itemIconGroup.findMany({
@@ -15,41 +18,26 @@ export async function getGroupsAction() {
     orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
   });
 
-  // 兜底初始化逻辑 (如果数据库中无该用户分组)
+  // 兜底初始化逻辑 (如果数据库中无该用户分组，则为默认 Tab 建一个示例分组)
   if (groups.length === 0) {
-    groups = await db.$transaction(async (tx: any) => {
-      const g1 = await tx.itemIconGroup.create({
+    const tabs = await db.viewTab.findMany({
+      where: { userId: user.id },
+      orderBy: [{ sort: 'asc' }, { id: 'asc' }],
+    });
+    const firstTab = tabs[0];
+    if (firstTab) {
+      const created = await db.itemIconGroup.create({
         data: {
           title: '常用网站',
           icon: 'lucide:globe',
           groupType: 'website',
+          tabId: firstTab.id,
           userId: user.id,
           sort: 1,
         },
       });
-      const g2 = await tx.itemIconGroup.create({
-        data: {
-          title: '日常网页',
-          icon: 'lucide:layout',
-          groupType: 'webpage',
-          userId: user.id,
-          sort: 2,
-        },
-      });
-
-      // 将无主图标划分至第一个分组
-      await tx.itemIcon.updateMany({
-        where: {
-          userId: user.id,
-          itemIconGroupId: 0,
-        },
-        data: {
-          itemIconGroupId: g1.id,
-        },
-      });
-
-      return [g1, g2];
-    });
+      groups = [created];
+    }
   }
 
   return groups;
@@ -63,9 +51,25 @@ export async function editGroupAction(data: {
   description?: string;
   sort?: number;
   groupType: string;
+  tabId?: number;
 }) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Unauthorized');
+
+  // tabId 缺失时兜底到该用户第一个 Tab
+  let tabId = data.tabId;
+  if (!tabId) {
+    const firstTab = await db.viewTab.findFirst({
+      where: { userId: user.id },
+      orderBy: [{ sort: 'asc' }, { id: 'asc' }],
+    });
+    tabId = firstTab?.id ?? 0;
+  }
+  if (!tabId) throw new Error('请先创建导航 Tab');
+
+  // 校验 tab 归属
+  const tab = await db.viewTab.findFirst({ where: { id: tabId, userId: user.id } });
+  if (!tab) throw new Error('目标 Tab 不存在');
 
   if (data.id) {
     // 编辑
@@ -76,7 +80,8 @@ export async function editGroupAction(data: {
         icon: data.icon,
         description: data.description || '',
         sort: data.sort,
-        groupType: data.groupType,
+        groupType: tab.type === 'list' ? 'webpage' : 'website', // 以所属 Tab 形态为准
+        tabId,
       },
     });
     revalidatePath('/');
@@ -89,7 +94,8 @@ export async function editGroupAction(data: {
         icon: data.icon,
         description: data.description || '',
         sort: data.sort || 99,
-        groupType: data.groupType,
+        groupType: tab.type === 'list' ? 'webpage' : 'website',
+        tabId,
         userId: user.id,
       },
     });
@@ -103,16 +109,7 @@ export async function deleteGroupsAction(ids: number[]) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Unauthorized');
 
-  // 获取该用户的分组总数
-  const totalCount = await db.itemIconGroup.count({
-    where: { userId: user.id },
-  });
-
-  if (ids.length >= totalCount) {
-    return { success: false, code: 1201, message: '请至少保留一个分组！' };
-  }
-
-  await db.$transaction(async (tx: any) => {
+  await db.$transaction(async (tx) => {
     // 级联删除关联 of ItemIcon
     await tx.itemIcon.deleteMany({
       where: {
@@ -135,14 +132,21 @@ export async function deleteGroupsAction(ids: number[]) {
 }
 
 // 保存分组排序
-export async function saveGroupSortAction(sortItems: { id: number; sort: number }[]) {
+export async function saveGroupSortAction(
+  sortItems: { id: number; sort: number }[],
+  tabId?: number
+) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Unauthorized');
 
   await db.$transaction(
     sortItems.map((item) =>
       db.itemIconGroup.update({
-        where: { id: item.id, userId: user.id },
+        where: {
+          id: item.id,
+          userId: user.id,
+          ...(tabId ? { tabId } : {}),
+        },
         data: { sort: item.sort },
       })
     )

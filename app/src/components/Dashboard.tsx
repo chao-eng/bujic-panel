@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useTransition } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from './I18nProvider';
 import SearchBar from './SearchBar';
 import IconGrid from './IconGrid';
 import EditIconModal from './Modals/EditIconModal';
 import GroupManageModal from './Modals/GroupManageModal';
 import SettingsModal from './Modals/SettingsModal';
+import TabManageModal from './Modals/TabManageModal';
 import ConfirmDeleteModal from './Modals/ConfirmDeleteModal';
 import {
   saveItemIconSortAction,
@@ -14,17 +15,16 @@ import {
   addMultipleItemIconsAction,
 } from '../actions/iconActions';
 import { editGroupAction, getGroupsAction } from '../actions/groupActions';
+import { getTabsAction, editTabAction } from '../actions/tabActions';
 import { logoutAction } from '../actions/userActions';
 import {
-  Globe,
-  Layout,
   Settings,
   FolderEdit,
   Plus,
   LogOut,
   ChevronDown,
-  Monitor,
-  Menu,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 
 interface GroupType {
@@ -32,6 +32,14 @@ interface GroupType {
   title: string;
   icon: string;
   groupType: string;
+  tabId: number;
+}
+
+interface ViewTabType {
+  id: number;
+  name: string;
+  type: 'card' | 'list';
+  sort: number;
 }
 
 interface ItemIconType {
@@ -58,24 +66,41 @@ interface DashboardProps {
     role: number;
     mail: string | null;
   };
+  initialTabs: ViewTabType[];
   initialGroups: GroupType[];
   initialIcons: ItemIconType[];
-  initialPanelConfig?: any;
-  initialSearchEngineConfig?: any;
+  initialBrandName?: string;
+  initialBrandIcon?: string;
 }
+
+const ACTIVE_TAB_KEY = 'bujic-active-tab';
 
 export default function Dashboard({
   user,
+  initialTabs,
   initialGroups,
   initialIcons,
+  initialBrandName,
+  initialBrandIcon,
 }: DashboardProps) {
-  const { t, locale, setLocale } = useTranslation();
+  const { t } = useTranslation();
   const [currentUser, setCurrentUser] = useState(user);
+  const [tabs, setTabs] = useState<ViewTabType[]>(initialTabs);
   const [groups, setGroups] = useState<GroupType[]>(initialGroups);
   const [icons, setIcons] = useState<ItemIconType[]>(initialIcons);
 
-  // 展示模式：'website' | 'webpage'
-  const [activeTab, setActiveTab] = useState<'website' | 'webpage'>('website');
+  // 激活导航 Tab
+  const [activeTabId, setActiveTabId] = useState<number>(() => {
+    if (initialTabs.length > 0) {
+      try {
+        const saved = Number(localStorage.getItem(ACTIVE_TAB_KEY));
+        if (initialTabs.some((x) => x.id === saved)) return saved;
+      } catch (e) {}
+      return initialTabs[0].id;
+    }
+    return 0;
+  });
+  const activeTab = tabs.find((x) => x.id === activeTabId) || tabs[0] || { id: 0, name: '', type: 'card' as const, sort: 1 };
 
   // 本地检索过滤关键字
   const [searchQuery, setSearchQuery] = useState('');
@@ -85,12 +110,26 @@ export default function Dashboard({
   const [editingIcon, setEditingIcon] = useState<ItemIconType | null>(null);
   const [isGroupManageOpen, setIsGroupManageOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isTabManageOpen, setIsTabManageOpen] = useState(false);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [deletingIcon, setDeletingIcon] = useState<ItemIconType | null>(null);
   const [importMsg, setImportMsg] = useState('');
   const [importError, setImportError] = useState(false);
 
   const [activeGroupScroll, setActiveGroupScroll] = useState<number | null>(null);
+
+  // 内外网判定状态
+  const [isLan, setIsLan] = useState(false);
+
+  useEffect(() => {
+    // 请求一次服务端内外网判定结果（页面加载时，仅缓存用，不进点击链路）
+    fetch('/api/openness/lan-check', { credentials: 'same-origin' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.code === 0) setIsLan(!!data.data?.isLan);
+      })
+      .catch(() => {});
+  }, []);
 
   // 折叠分组集合 — SSR 初始为空，挂载后再从 localStorage 恢复（避免水合不匹配）
   const [collapsedGroups, setCollapsedGroups] = useState<Set<number>>(new Set());
@@ -148,6 +187,16 @@ export default function Dashboard({
     return () => clearInterval(timer);
   }, [icons]);
 
+  // 切换激活 Tab 记忆
+  const handleSelectTab = (id: number) => {
+    setActiveTabId(id);
+    try {
+      localStorage.setItem(ACTIVE_TAB_KEY, String(id));
+    } catch {}
+    setActiveGroupScroll(null);
+    window.scrollTo({ top: 0 });
+  };
+
   const toggleGroupCollapse = (id: number) => {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
@@ -164,14 +213,14 @@ export default function Dashboard({
     });
   };
 
-  // 过滤满足当前展示模式 (网站/网页) 的分组与书签
-  const activeGroups = groups.filter((g) => g.groupType === activeTab);
+  // 过滤当前激活 Tab 的分组与书签
+  const tabGroups = groups.filter((g) => g.tabId === activeTab.id);
 
   // 滚动位置监听联动左侧分组条
   useEffect(() => {
     const handleScroll = () => {
       const scrollPos = window.scrollY + 200;
-      for (const group of activeGroups) {
+      for (const group of tabGroups) {
         const el = document.getElementById(`group-${group.id}`);
         if (el) {
           const top = el.offsetTop;
@@ -185,7 +234,7 @@ export default function Dashboard({
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [activeGroups]);
+  }, [tabGroups]);
 
   // 左侧圆点一键锚点跳转
   const handleScrollToGroup = (id: number) => {
@@ -196,19 +245,34 @@ export default function Dashboard({
   const handleRefreshGroups = async () => {
     try {
       const refreshed = await getGroupsAction();
-      setGroups(refreshed);
+      setGroups(refreshed as any);
+    } catch (e) {}
+  };
+
+  const handleRefreshTabs = async () => {
+    try {
+      const refreshed = await getTabsAction();
+      setTabs(refreshed as any);
+      // 若激活 Tab 已被删除，回退到第一个 Tab
+      setActiveTabId((prev) => {
+        if (!refreshed.some((x: any) => x.id === prev)) {
+          const first = refreshed[0]?.id ?? 0;
+          try {
+            localStorage.setItem(ACTIVE_TAB_KEY, String(first));
+          } catch {}
+          return first;
+        }
+        return prev;
+      });
     } catch (e) {}
   };
 
   // 拖拽完排序本地更新并静默调用 Server Action 物理保存
   const handleReorderIcons = async (groupId: number, reordered: ItemIconType[]) => {
-    // 1. 乐观 UI：用新顺序替换该分组图标（保留其他分组不变）
-    //    注意：不能用 .map() 原序遍历，那样只会更新数据不会改变顺序。
     const otherIcons = icons.filter((icon) => icon.itemIconGroupId !== groupId);
     const reorderedWithSort = reordered.map((item, idx) => ({ ...item, sort: idx + 1 }));
     setIcons([...otherIcons, ...reorderedWithSort]);
 
-    // 2. 构造排序提交数据并保存至数据库
     const sortItems = reorderedWithSort.map((item) => ({
       id: item.id,
       sort: item.sort,
@@ -245,8 +309,30 @@ export default function Dashboard({
     }
   };
 
+  const handleTogglePin = async (icon: ItemIconType) => {
+    const next = { ...icon, pinned: !icon.pinned };
+    setIcons(icons.map((i) => (i.id === icon.id ? next : i)));
+    try {
+      const { editItemIconAction } = await import('../actions/iconActions');
+      await editItemIconAction({
+        id: icon.id,
+        title: icon.title,
+        url: icon.url,
+        lanUrl: icon.lanUrl || '',
+        description: icon.description || '',
+        openMethod: icon.openMethod,
+        pinned: next.pinned,
+        itemIconGroupId: icon.itemIconGroupId,
+        icon: icon.icon,
+        widgetType: icon.widgetType || '',
+        widgetSettings: icon.widgetSettings || '',
+      });
+    } catch (e) {
+      console.error('更新置顶失败:', e);
+    }
+  };
+
   const handleSaveIconSuccess = (saved: any) => {
-    // 重新拉取或本地更新
     const exists = icons.some((i) => i.id === saved.id);
     const parsedSaved = {
       ...saved,
@@ -265,9 +351,9 @@ export default function Dashboard({
     window.location.href = '/login';
   };
 
-  // JSON 备份导出
+  // JSON 备份导出（含 tabs）
   const handleExportConfig = () => {
-    const dataStr = JSON.stringify({ groups, icons }, null, 2);
+    const dataStr = JSON.stringify({ tabs, groups, icons }, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -277,7 +363,7 @@ export default function Dashboard({
     URL.revokeObjectURL(url);
   };
 
-  // JSON 备份导入
+  // JSON 备份导入（兼容新旧格式）
   const handleImportConfig = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -289,11 +375,44 @@ export default function Dashboard({
         if (config.groups && config.icons) {
           setImportError(false);
           setImportMsg(t.importingData);
+
+          // 若无 tabs 字段 → 旧格式：按旧双形态重建默认 Tab
+          const tabDefs: { name: string; type: 'card' | 'list'; id: number }[] = (config.tabs && config.tabs.length > 0
+            ? config.tabs.map((tb: any, i: number) => ({ id: tb.id, name: tb.name, type: tb.type }))
+            : (() => {
+                const hasCard = config.groups.some((g: any) => g.groupType !== 'webpage');
+                const hasList = config.groups.some((g: any) => g.groupType === 'webpage');
+                const defs: { id: number; name: string; type: 'card' | 'list' }[] = [];
+                if (hasCard) defs.push({ id: -1, name: '收藏', type: 'card' });
+                if (hasList) defs.push({ id: -2, name: '书签', type: 'list' });
+                if (defs.length === 0) defs.push({ id: -3, name: '常用', type: 'card' });
+                return defs;
+              })());
+          // 旧格式时，按原 groupType 映射到对应形态 Tab
+          const oldToNewTab: Record<string, number> = {};
+          for (const tb of tabDefs) {
+            const created = await editTabAction({ name: tb.name, type: tb.type });
+            if (created && typeof created.id === 'number') {
+              oldToNewTab[String(tb.id)] = created.id;
+            }
+          }
+
           for (const g of config.groups) {
+            // 确定目标 tab：优先使用组自带 tabId，否则旧格式按形态取第一个匹配 Tab
+            let tabKey: string | number = g.tabId;
+            if (tabKey === undefined || tabKey === null || tabKey === 0 || tabKey === -1 || tabKey === -2) {
+              const isList = g.groupType === 'webpage';
+              const matched = tabDefs.find((x) => (isList ? x.type === 'list' : x.type === 'card'));
+              tabKey = matched ? matched.id : tabDefs[0].id;
+            }
+            const targetTabId = oldToNewTab[String(tabKey)];
+            if (!targetTabId) continue;
+
             const createdGroup = await editGroupAction({
               title: g.title,
               icon: g.icon,
               groupType: g.groupType,
+              tabId: targetTabId,
             });
 
             const subIcons = config.icons.filter((i: any) => i.itemIconGroupId === g.id);
@@ -301,9 +420,12 @@ export default function Dashboard({
               const itemsToCreate = subIcons.map((i: any) => ({
                 title: i.title,
                 url: i.url,
+                lanUrl: i.lanUrl || '',
                 description: i.description || '',
-                itemIconGroupId: createdGroup.id,
+                openMethod: i.openMethod ?? 1,
+                pinned: !!i.pinned,
                 icon: i.icon,
+                itemIconGroupId: createdGroup.id,
               }));
               await addMultipleItemIconsAction(itemsToCreate);
             }
@@ -342,109 +464,130 @@ export default function Dashboard({
       )}
 
       {/* 顶部导航控制条 */}
-      <header className="w-full border-b border-white/5 bg-[#0a0b10]/60 backdrop-blur-xl sticky top-0 z-40 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-md flex items-center justify-center text-white">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-              <circle cx="7" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" />
-              <path d="M7 2V3M7 11V12M2 7H3M11 7H12" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
-              <path d="M18 20C17.5 15.5 16 11.5 13 9" />
-              <path d="M13 9C10.5 8.5 8 9.5 7 11.5" />
-              <path d="M13 9C11 7 9.5 5 11 3" />
-              <path d="M13 9C14.5 7 16.5 6.5 18.5 7.5" />
-              <path d="M13 9C15.5 10 17 11.5 17.5 13.5" />
-              <path d="M13 9C13 11 12 13 10.5 14" />
-              <path d="M2 20C5 18 13 17 22 20" />
-              <path d="M4 22C6 21.5 8 21.5 10 22C12 22.5 14 22.5 16 22C18 21.5 20 21.5 22 22" strokeWidth="1.5" opacity="0.8" />
-            </svg>
-          </div>
-          <span className="font-heading font-bold text-white tracking-wide text-sm hidden sm:inline">
-            布吉岛导航
-          </span>
-        </div>
-
-        {/* 模式选择 (Tab切换) */}
-        <div className="flex bg-white/5 p-1 rounded-xl border border-white/5 text-xs text-white/50">
-          <button
-            onClick={() => setActiveTab('website')}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg font-medium transition cursor-pointer ${activeTab === 'website' ? 'bg-white/10 text-white font-semibold' : 'hover:text-white'}`}
-          >
-            <Globe size={13} />
-            <span>{t.website}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('webpage')}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg font-medium transition cursor-pointer ${activeTab === 'webpage' ? 'bg-white/10 text-white font-semibold' : 'hover:text-white'}`}
-          >
-            <Layout size={13} />
-            <span>{t.webpage}</span>
-          </button>
-        </div>
-
-        {/* 顶部操作中心 */}
-        <div className="flex items-center gap-2">
-          {/* 添加书签 */}
-          <button
-            onClick={() => {
-              setEditingIcon(null);
-              setIsEditIconOpen(true);
-            }}
-            className="flex items-center justify-center p-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 active:scale-95 transition text-white shadow-md shadow-indigo-500/10 cursor-pointer"
-            title={t.addBookmark}
-          >
-            <Plus size={16} />
-          </button>
-
-          {/* 分组管理 */}
-          <button
-            onClick={() => setIsGroupManageOpen(true)}
-            className="flex items-center justify-center p-2 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 active:scale-95 transition text-white/80 cursor-pointer"
-            title="分组管理"
-          >
-            <FolderEdit size={16} />
-          </button>
-
-          {/* 全局设置 */}
-          <button
-            onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center justify-center p-2 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 active:scale-95 transition text-white/80 cursor-pointer"
-            title={t.settings}
-          >
-            <Settings size={16} />
-          </button>
-
-          <div className="w-px h-6 bg-white/10 mx-1" />
-
-          {/* 用户及退出 */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full border border-white/10 bg-white/5 overflow-hidden flex items-center justify-center">
-              {currentUser.headImage ? (
+      <header className="w-full border-b border-white/5 bg-[#0a0b10]/60 backdrop-blur-xl sticky top-0 z-40 px-6 pt-4 pb-3 space-y-3">
+        {/* 第一行：品牌 + 操作 */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0">
+              {initialBrandIcon ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={currentUser.headImage} alt="" className="w-full h-full object-cover" />
+                <img src={initialBrandIcon} alt="" className="w-full h-full object-contain" />
               ) : (
-                <span className="text-xs font-heading font-bold text-indigo-400">
-                  {currentUser.name?.substring(0, 1).toUpperCase() || 'U'}
-                </span>
+                <div className="w-full h-full rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-md flex items-center justify-center text-white">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                    <circle cx="7" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" />
+                    <path d="M7 2V3M7 11V12M2 7H3M11 7H12" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
+                    <path d="M18 20C17.5 15.5 16 11.5 13 9" />
+                    <path d="M13 9C10.5 8.5 8 9.5 7 11.5" />
+                    <path d="M13 9C11 7 9.5 5 11 3" />
+                    <path d="M13 9C14.5 7 16.5 6.5 18.5 7.5" />
+                    <path d="M13 9C15.5 10 17 11.5 17.5 13.5" />
+                    <path d="M13 9C13 11 12 13 10.5 14" />
+                    <path d="M2 20C5 18 13 17 22 20" />
+                    <path d="M4 22C6 21.5 8 21.5 10 22C12 22.5 14 22.5 16 22C18 21.5 20 21.5 22 22" strokeWidth="1.5" opacity="0.8" />
+                  </svg>
+                </div>
               )}
             </div>
-            <button
-              onClick={handleLogout}
-              className="p-2 rounded-xl hover:bg-red-500/10 text-white/40 hover:text-red-400 transition cursor-pointer"
-              title={t.logout}
-            >
-              <LogOut size={16} />
-            </button>
+            <span className="font-heading font-bold text-white tracking-wide text-sm hidden sm:inline truncate">
+              {initialBrandName || t.loginTitle}
+            </span>
           </div>
+
+          {/* 顶部操作中心 */}
+          <div className="flex items-center gap-2">
+            {/* 添加书签 */}
+            <button
+              onClick={() => {
+                setEditingIcon(null);
+                setIsEditIconOpen(true);
+              }}
+              className="flex items-center justify-center p-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 active:scale-95 transition text-white shadow-md shadow-indigo-500/10 cursor-pointer"
+              title={t.addBookmark}
+            >
+              <Plus size={16} />
+            </button>
+
+            {/* 分组管理 */}
+            <button
+              onClick={() => setIsGroupManageOpen(true)}
+              className="flex items-center justify-center p-2 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 active:scale-95 transition text-white/80 cursor-pointer"
+              title="分组管理"
+            >
+              <FolderEdit size={16} />
+            </button>
+
+            {/* 全局设置 */}
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              className="flex items-center justify-center p-2 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 active:scale-95 transition text-white/80 cursor-pointer"
+              title={t.settings}
+            >
+              <Settings size={16} />
+            </button>
+
+            <div className="w-px h-6 bg-white/10 mx-1" />
+
+            {/* 用户及退出 */}
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full border border-white/10 bg-white/5 overflow-hidden flex items-center justify-center">
+                {currentUser.headImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={currentUser.headImage} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-xs font-heading font-bold text-indigo-400">
+                    {currentUser.name?.substring(0, 1).toUpperCase() || 'U'}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={handleLogout}
+                className="p-2 rounded-xl hover:bg-red-500/10 text-white/40 hover:text-red-400 transition cursor-pointer"
+                title={t.logout}
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 第二行：导航 Tab 条 */}
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pr-2">
+          {tabs.map((tab) => {
+            const isActive = tab.id === activeTab.id;
+            const Icon = tab.type === 'list' ? List : LayoutGrid;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleSelectTab(tab.id)}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer whitespace-nowrap shrink-0 border ${
+                  isActive
+                    ? 'bg-white/10 text-white font-semibold border-white/10'
+                    : 'text-white/55 hover:text-white hover:bg-white/5 border-transparent'
+                }`}
+              >
+                <Icon size={12} className={isActive ? 'text-indigo-300' : 'text-white/35'} />
+                <span>{tab.name}</span>
+              </button>
+            );
+          })}
+          <button
+            onClick={() => setIsTabManageOpen(true)}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-dashed border-white/10 hover:border-indigo-500/40 hover:text-indigo-300 transition text-white/45 text-xs whitespace-nowrap shrink-0 cursor-pointer"
+            title={t.manageTabs}
+          >
+            <Plus size={12} />
+            <span>{t.manageTabs}</span>
+          </button>
         </div>
       </header>
 
       {/* 主工作区 */}
       <main className="max-w-[1240px] w-full mx-auto px-6 mt-10 grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-10 items-start">
-        
         {/* 左侧锚点导航 (分组指示条) */}
-        <aside className="hidden lg:flex flex-col gap-1.5 sticky top-28 bg-[#12131a]/30 border border-white/5 rounded-2xl p-4 backdrop-blur-md">
+        <aside className="hidden lg:flex flex-col gap-1.5 sticky top-36 bg-[#12131a]/30 border border-white/5 rounded-2xl p-4 backdrop-blur-md">
           <h3 className="text-[10px] font-bold text-white/30 uppercase tracking-widest px-2 mb-2">分组导航</h3>
-          {activeGroups.map((g) => {
+          {tabGroups.map((g) => {
             const isActive = activeGroupScroll === g.id;
             return (
               <button
@@ -467,7 +610,12 @@ export default function Dashboard({
 
           {/* 各分组书签渲染列表 */}
           <div className="space-y-10 pt-4">
-            {activeGroups.map((group) => {
+            {tabGroups.length === 0 && !searchQuery.trim() && (
+              <div className="text-center py-16 text-white/30 text-sm">
+                {t.emptyTabTitle}
+              </div>
+            )}
+            {tabGroups.map((group) => {
               // 本地搜索检索及分组书签筛选
               const filteredIcons = icons.filter((icon) => {
                 const belongs = icon.itemIconGroupId === group.id;
@@ -488,7 +636,7 @@ export default function Dashboard({
               const isCollapsed = collapsedGroups.has(group.id);
 
               return (
-                <div key={group.id} id={`group-${group.id}`} className="scroll-mt-24">
+                <div key={group.id} id={`group-${group.id}`} className="scroll-mt-40">
                   {/* 分组标题行 — 点击折叠/展开 */}
                   <button
                     onClick={() => toggleGroupCollapse(group.id)}
@@ -515,11 +663,13 @@ export default function Dashboard({
                   {!isCollapsed && (
                     <IconGrid
                       groupId={group.id}
-                      groupType={activeTab}
+                      tabType={activeTab.type}
                       icons={filteredIcons}
                       onReorder={(reordered) => handleReorderIcons(group.id, reordered)}
                       onEdit={handleEditIcon}
                       onDelete={handleDeleteIcon}
+                      onTogglePin={handleTogglePin}
+                      isLan={isLan}
                       widgetsStats={widgetsStats}
                       isWidgetsLoading={isWidgetsLoading}
                     />
@@ -539,15 +689,25 @@ export default function Dashboard({
           setEditingIcon(null);
         }}
         groups={groups}
+        tabs={tabs}
+        activeTabId={activeTab.id}
         editingIcon={editingIcon}
-        activeGroupId={activeGroupScroll || activeGroups[0]?.id || 0}
         onSave={handleSaveIconSuccess}
+      />
+
+      <TabManageModal
+        isOpen={isTabManageOpen}
+        onClose={() => setIsTabManageOpen(false)}
+        tabs={tabs}
+        onRefresh={handleRefreshTabs}
       />
 
       <GroupManageModal
         isOpen={isGroupManageOpen}
         onClose={() => setIsGroupManageOpen(false)}
         groups={groups}
+        tabs={tabs}
+        activeTabId={activeTab.id}
         onRefresh={handleRefreshGroups}
       />
 
@@ -555,6 +715,8 @@ export default function Dashboard({
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         currentUser={currentUser}
+        initialBrandName={initialBrandName}
+        initialBrandIcon={initialBrandIcon}
         onRefreshUser={setCurrentUser}
       />
 

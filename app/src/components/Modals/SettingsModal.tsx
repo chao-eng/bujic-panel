@@ -11,6 +11,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { Switch } from '../ui/switch';
 import {
   updateProfileAction,
   updatePasswordAction,
@@ -19,10 +20,14 @@ import {
   updateUserAction,
   deleteUsersAction,
 } from '../../actions/userActions';
-import { Loader2, Plus, Edit2, Trash2, Shield, User, Lock, Download, Upload, Info, Palette } from 'lucide-react';
+import { Loader2, Plus, Edit2, Trash2, Shield, User, Lock, Download, Upload, Info, Palette, Globe, Network } from 'lucide-react';
 import { THEMES, ThemeId } from '../../lib/themes';
 import { useTheme } from '../I18nProvider';
 import { encryptSensitive } from '../../lib/client-crypto';
+import {
+  saveSiteBrandAction,
+  saveLanSubnetsAction,
+} from '../../actions/systemActions';
 
 interface UserType {
   id: number;
@@ -46,6 +51,8 @@ interface SettingsModalProps {
     role: number;
     mail: string | null;
   };
+  initialBrandName?: string;
+  initialBrandIcon?: string;
   onRefreshUser: (updatedUser: any) => void;
 }
 
@@ -53,6 +60,8 @@ export default function SettingsModal({
   isOpen,
   onClose,
   currentUser,
+  initialBrandName = '',
+  initialBrandIcon = '',
   onRefreshUser,
 }: SettingsModalProps) {
   const { t } = useTranslation();
@@ -94,6 +103,16 @@ export default function SettingsModal({
   const [disclaimer, setDisclaimer] = useState('');
   const [aboutText, setAboutText] = useState('');
 
+  // 5. 站点品牌 + 网络区域（管理员）
+  const [brandName, setBrandName] = useState(initialBrandName);
+  const [brandIcon, setBrandIcon] = useState(initialBrandIcon);
+  const [brandMsg, setBrandMsg] = useState('');
+  const [brandError, setBrandError] = useState(false);
+  const [enableLanJump, setEnableLanJump] = useState(false);
+  const [subnetLines, setSubnetLines] = useState<string[]>(['']);
+  const [networkMsg, setNetworkMsg] = useState('');
+  const [networkError, setNetworkError] = useState(false);
+
   // 挂载加载
   useEffect(() => {
     setName(currentUser.name || '');
@@ -115,9 +134,90 @@ export default function SettingsModal({
 
       if (currentUser.role === 1) {
         loadUsersList();
+        loadNetworkSettings();
       }
     }
   }, [isOpen, currentUser]);
+
+  const loadNetworkSettings = async () => {
+    try {
+      const { getLanSubnetsAction } = await import('../../actions/systemActions');
+      const subnets = await getLanSubnetsAction();
+      setSubnetLines(subnets.length > 0 ? [...subnets, ''] : ['']);
+      setEnableLanJump(subnets.length > 0);
+    } catch (e) {}
+  };
+
+  const handleSaveBrand = (e: React.FormEvent) => {
+    e.preventDefault();
+    setBrandMsg('');
+    setBrandError(false);
+    startTransition(async () => {
+      const res = await saveSiteBrandAction({ name: brandName, icon: brandIcon });
+      if (res.success) {
+        setBrandError(false);
+        setBrandMsg(t.brandSaved);
+        // 品牌涉及浏览器标题/favicon，整体刷新以应用新配置
+        setTimeout(() => window.location.reload(), 800);
+      } else {
+        setBrandError(true);
+        setBrandMsg((res as any).message || t.saveFailed);
+      }
+    });
+  };
+
+  const handleBrandIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBrandMsg('');
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('fileType', 'icon');
+    try {
+      const res = await fetch('/api/file/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (res.ok && data.code === 0) {
+        setBrandIcon(data.data.src);
+      } else {
+        setBrandError(true);
+        setBrandMsg(data.message || t.saveFailed);
+      }
+    } catch (e) {
+      setBrandError(true);
+      setBrandMsg(t.saveFailed);
+    }
+  };
+
+  const handleSaveNetwork = (e: React.FormEvent) => {
+    e.preventDefault();
+    setNetworkMsg('');
+    setNetworkError(false);
+    const subnets = subnetLines
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    startTransition(async () => {
+      const res = await saveLanSubnetsAction(enableLanJump ? subnets : []);
+      if (res.success) {
+        setNetworkError(false);
+        setNetworkMsg(t.networkSaved);
+        setTimeout(() => window.location.reload(), 800);
+      } else {
+        setNetworkError(true);
+        setNetworkMsg((res as any).message || t.invalidSubnet);
+      }
+    });
+  };
+
+  const handleUpdateSubnetLine = (idx: number, val: string) => {
+    const next = [...subnetLines];
+    next[idx] = val;
+    setSubnetLines(next);
+  };
+
+  const addSubnetLine = () => setSubnetLines((prev) => [...prev, '']);
+  const removeSubnetLine = (idx: number) => {
+    setSubnetLines((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   const loadUsersList = async () => {
     setIsUserManagePending(true);
@@ -689,6 +789,155 @@ export default function SettingsModal({
                   );
                 })}
               </div>
+
+              {/* 站点品牌（管理员） */}
+              {currentUser.role === 1 && (
+                <div className="mt-6 p-4 bg-white/5 border border-white/5 rounded-xl space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Palette size={15} className="text-indigo-400" />
+                    <h4 className="text-xs font-bold text-white/90 flex items-center gap-2">
+                      {t.siteBrand}
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-white/40 font-mono">Admin</span>
+                    </h4>
+                  </div>
+                  {brandMsg && (
+                    <div className={`text-xs font-semibold px-3 py-2 rounded-lg ${brandError ? 'bg-red-500/10 border border-red-500/20 text-red-400' : 'bg-green-500/10 border border-green-500/20 text-green-400'}`}>
+                      {brandMsg}
+                    </div>
+                  )}
+                  <form onSubmit={handleSaveBrand} className="space-y-3">
+                    <div className="flex items-end gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center overflow-hidden text-indigo-400 flex-shrink-0">
+                        {brandIcon ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={brandIcon} alt="" className="w-9 h-9 object-contain" />
+                        ) : (
+                          <Globe size={20} />
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-1.5">
+                        <Label className="text-white/60 text-xs">{t.siteName}</Label>
+                        <Input
+                          type="text"
+                          placeholder={t.loginTitle}
+                          value={brandName}
+                          onChange={(e) => setBrandName(e.target.value)}
+                          className="bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <Label className="text-white/60 text-xs w-24 shrink-0">{t.siteIcon}</Label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleBrandIconUpload}
+                        id="brand-icon-upload"
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="brand-icon-upload"
+                        className="px-3 py-1.5 bg-white/5 border border-white/5 hover:bg-white/10 active:scale-95 text-xs font-medium rounded-xl transition cursor-pointer select-none text-white/80"
+                      >
+                        {t.uploadIcon}
+                      </label>
+                      {brandIcon && (
+                        <button
+                          type="button"
+                          onClick={() => setBrandIcon('')}
+                          className="px-3 py-1.5 bg-white/5 border border-white/5 hover:bg-white/10 active:scale-95 text-xs font-medium rounded-xl transition cursor-pointer text-white/60"
+                        >
+                          {t.restoreDefaultIcon}
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex justify-end">
+                      <button
+                        type="submit"
+                        disabled={isPending}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 rounded-xl text-xs font-semibold text-white transition active:scale-95 cursor-pointer"
+                      >
+                        {isPending && <Loader2 size={13} className="animate-spin" />}
+                        <span>{t.save}</span>
+                      </button>
+                    </div>
+                  </form>
+                  <p className="text-[10px] text-white/30 leading-relaxed">{t.siteBrandHint}</p>
+                </div>
+              )}
+
+              {/* 网络区域（管理员） */}
+              {currentUser.role === 1 && (
+                <div className="p-4 bg-white/5 border border-white/5 rounded-xl space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Network size={15} className="text-indigo-400" />
+                    <h4 className="text-xs font-bold text-white/90 flex items-center gap-2">
+                      {t.networkArea}
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-white/40 font-mono">Admin</span>
+                    </h4>
+                  </div>
+                  {networkMsg && (
+                    <div className={`text-xs font-semibold px-3 py-2 rounded-lg ${networkError ? 'bg-red-500/10 border border-red-500/20 text-red-400' : 'bg-green-500/10 border border-green-500/20 text-green-400'}`}>
+                      {networkMsg}
+                    </div>
+                  )}
+                  <form onSubmit={handleSaveNetwork} className="space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-xl border border-white/5 bg-white/5">
+                      <div>
+                        <Label className="text-white/90 text-xs font-semibold">{t.enableLanJump}</Label>
+                        <p className="text-[10px] text-white/30 mt-0.5">{t.lanAreaHint}</p>
+                      </div>
+                      <Switch checked={enableLanJump} onCheckedChange={setEnableLanJump} />
+                    </div>
+
+                    {enableLanJump && (
+                      <div className="space-y-2">
+                        <Label className="text-white/60 text-xs">{t.lanSubnets}</Label>
+                        {subnetLines.map((line, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <Input
+                              type="text"
+                              placeholder={t.lanSubnetPlaceholder}
+                              value={line}
+                              onChange={(e) => handleUpdateSubnetLine(idx, e.target.value)}
+                              className="bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeSubnetLine(idx)}
+                              disabled={subnetLines.length <= 1}
+                              className="p-2 rounded-lg border border-white/5 bg-white/5 hover:bg-red-500/20 hover:text-red-400 transition text-white/40 cursor-pointer disabled:opacity-30"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={addSubnetLine}
+                          className="flex items-center gap-1 px-3 py-1.5 text-xs text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition cursor-pointer"
+                        >
+                          <Plus size={13} />
+                          <span>{t.addSubnet}</span>
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="flex justify-end">
+                      <button
+                        type="submit"
+                        disabled={isPending}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 rounded-xl text-xs font-semibold text-white transition active:scale-95 cursor-pointer"
+                      >
+                        {isPending && <Loader2 size={13} className="animate-spin" />}
+                        <span>{t.save}</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
             </TabsContent>
 
             {/* 4. 导入导出 */}

@@ -22,6 +22,14 @@ interface GroupType {
   title: string;
   icon: string;
   groupType: string;
+  tabId: number;
+}
+
+interface ViewTabType {
+  id: number;
+  name: string;
+  type: 'card' | 'list';
+  sort: number;
 }
 
 interface ItemIconType {
@@ -43,8 +51,9 @@ interface EditIconModalProps {
   isOpen: boolean;
   onClose: () => void;
   groups: GroupType[];
+  tabs: ViewTabType[];
+  activeTabId: number;
   editingIcon: ItemIconType | null;
-  activeGroupId: number;
   onSave: (saved: any) => void;
 }
 
@@ -52,8 +61,9 @@ export default function EditIconModal({
   isOpen,
   onClose,
   groups,
+  tabs,
+  activeTabId,
   editingIcon,
-  activeGroupId,
   onSave,
 }: EditIconModalProps) {
   const { t } = useTranslation();
@@ -66,7 +76,7 @@ export default function EditIconModal({
   const [description, setDescription] = useState('');
   const [openMethod, setOpenMethod] = useState(1);
   const [pinned, setPinned] = useState(false);
-  const [groupId, setGroupId] = useState(activeGroupId);
+  const [groupId, setGroupId] = useState(0);
   const [iconSrc, setIconSrc] = useState('lucide:globe');
   const [iconType, setIconType] = useState(1);
   const [widgetType, setWidgetType] = useState('');
@@ -82,18 +92,16 @@ export default function EditIconModal({
   const [wgEasyPassword, setWgEasyPassword] = useState('');
   const [kumaSlug, setKumaSlug] = useState('default');
 
-  // 胶囊 Tab 切换状态 (website | webpage)
-  const [activeGroupTab, setActiveGroupTab] = useState<'website' | 'webpage'>('website');
+  // 目标 Tab 状态（两级联动）
+  const [tabId, setTabId] = useState<number>(0);
+  const [availableTabs, setAvailableTabs] = useState<ViewTabType[]>(tabs);
 
-  const filteredGroups = groups.filter((g) => g.groupType === activeGroupTab);
+  // Widget 只能放在卡片 Tab；其余书签默认进入当前激活 Tab
+  useEffect(() => {
+    setAvailableTabs(tabs);
+  }, [tabs]);
 
-  const handleTabChange = (tab: 'website' | 'webpage') => {
-    setActiveGroupTab(tab);
-    const tabGroups = groups.filter((g) => g.groupType === tab);
-    if (tabGroups.length > 0) {
-      setGroupId(tabGroups[0].id);
-    }
-  };
+  const filteredGroups = groups.filter((g) => g.tabId === tabId);
 
   // 抓取状态与上传状态
   const [isCrawling, setIsCrawling] = useState(false);
@@ -110,23 +118,20 @@ export default function EditIconModal({
       setOpenMethod(editingIcon.openMethod);
       setPinned(editingIcon.pinned);
       const groupInfo = groups.find((g) => g.id === editingIcon.itemIconGroupId);
-      if (editingIcon.widgetType === 'beszel' || editingIcon.widgetType === 'qbittorrent' || editingIcon.widgetType === 'jellyfin' || editingIcon.widgetType === 'umami' || editingIcon.widgetType === 'wg-easy' || editingIcon.widgetType === 'uptime-kuma') {
-        setActiveGroupTab('website');
-        if (groupInfo && groupInfo.groupType !== 'website') {
-          const firstWebsiteGroup = groups.find((g) => g.groupType === 'website');
-          if (firstWebsiteGroup) {
-            setGroupId(firstWebsiteGroup.id);
-          } else {
-            setGroupId(editingIcon.itemIconGroupId);
-          }
-        } else {
-          setGroupId(editingIcon.itemIconGroupId);
-        }
+      const widgetTypes = ['beszel', 'qbittorrent', 'jellyfin', 'umami', 'wg-easy', 'uptime-kuma'];
+      const isWidgetEdit = widgetTypes.includes(editingIcon.widgetType || '');
+
+      if (isWidgetEdit) {
+        // Widget 强制放入第一个卡片 Tab
+        const cardTab = tabs.find((tb) => tb.type === 'card') || tabs[0];
+        const cardGroups = groups.filter((g) => g.tabId === cardTab?.id);
+        setTabId(cardTab?.id || 0);
+        setGroupId(cardGroups[0]?.id || editingIcon.itemIconGroupId);
       } else {
+        // 普通书签：优先用原 Tab/分组
+        const ownTabId = groupInfo?.tabId || (tabs.find((x) => x.id === (groups.find((g) => g.id === editingIcon.itemIconGroupId)?.tabId ?? 0))?.id ?? tabs[0]?.id ?? 0);
+        setTabId(ownTabId);
         setGroupId(editingIcon.itemIconGroupId);
-        if (groupInfo) {
-          setActiveGroupTab(groupInfo.groupType as 'website' | 'webpage');
-        }
       }
 
       setIconSrc(editingIcon.icon.src || 'lucide:globe');
@@ -239,15 +244,16 @@ export default function EditIconModal({
       setDescription('');
       setOpenMethod(1);
       setPinned(false);
-      
-      const defaultGroupId = activeGroupId || (groups[0]?.id ?? 0);
-      setGroupId(defaultGroupId);
-      const groupInfo = groups.find((g) => g.id === defaultGroupId);
-      if (groupInfo) {
-        setActiveGroupTab(groupInfo.groupType as 'website' | 'webpage');
-      } else if (groups.length > 0) {
-        setActiveGroupTab((groups[0]?.groupType || 'website') as 'website' | 'webpage');
+
+      // 默认落到激活 Tab 的第一个分组；Widget 优先卡片 Tab（由上层选择后自动调整）
+      let defaultTabId = activeTabId || tabs[0]?.id || 0;
+      if (tabs.length > 0) {
+        const t0 = tabs.find((x) => x.id === defaultTabId) || tabs[0];
+        defaultTabId = t0.id;
       }
+      setTabId(defaultTabId);
+      const defaultGroups = groups.filter((g) => g.tabId === defaultTabId);
+      setGroupId(defaultGroups[0]?.id ?? 0);
 
       setIconSrc('lucide:globe');
       setIconType(1);
@@ -265,7 +271,7 @@ export default function EditIconModal({
       setKumaSlug('default');
     }
     setErrorMsg('');
-  }, [editingIcon, isOpen, activeGroupId, groups]);
+  }, [editingIcon, isOpen, activeTabId, groups, tabs]);
 
   // 网页标题及 Favicon 爬虫抓取
   const handleAutoFetch = async () => {
@@ -431,30 +437,34 @@ export default function EditIconModal({
               onChange={(e) => {
                 const type = e.target.value;
                 setWidgetType(type);
+                // Widget 强制归入第一个卡片 Tab，并选中其首个分组
+                const widgetTypes = ['beszel', 'qbittorrent', 'jellyfin', 'umami', 'wg-easy', 'uptime-kuma'];
+                if (widgetTypes.includes(type)) {
+                  const cardTab = availableTabs.find((tb) => tb.type === 'card') || availableTabs[0];
+                  if (cardTab) {
+                    setTabId(cardTab.id);
+                    const cardGroups = groups.filter((g) => g.tabId === cardTab.id);
+                    if (cardGroups.length > 0) setGroupId(cardGroups[0].id);
+                  }
+                }
                 if (type === 'beszel') {
                   if (!url || url.includes('example.com') || url.includes('8080') || url.includes('8096')) setUrl('http://localhost:8090');
                   setIconSrc('lucide:server');
-                  handleTabChange('website');
                 } else if (type === 'qbittorrent') {
                   if (!url || url.includes('example.com') || url.includes('8090') || url.includes('8096')) setUrl('http://localhost:8080');
                   setIconSrc('lucide:download-cloud');
-                  handleTabChange('website');
                 } else if (type === 'jellyfin') {
                   if (!url || url.includes('example.com') || url.includes('8090') || url.includes('8080')) setUrl('http://localhost:8096');
                   setIconSrc('lucide:video');
-                  handleTabChange('website');
                 } else if (type === 'umami') {
                   if (!url || url.includes('example.com') || url.includes('8090') || url.includes('8080') || url.includes('8096')) setUrl('http://localhost:3000');
                   setIconSrc('lucide:bar-chart-3');
-                  handleTabChange('website');
                 } else if (type === 'wg-easy') {
                   if (!url || url.includes('example.com') || url.includes('8090') || url.includes('8080') || url.includes('8096') || url.includes('3000')) setUrl('http://localhost:51821');
                   setIconSrc('lucide:shield');
-                  handleTabChange('website');
                 } else if (type === 'uptime-kuma') {
                   if (!url || url.includes('example.com') || url.includes('8090') || url.includes('8080') || url.includes('8096') || url.includes('3000') || url.includes('51821')) setUrl('http://localhost:3001');
                   setIconSrc('lucide:activity');
-                  handleTabChange('website');
                 }
               }}
               className="w-full h-9 px-3 bg-white/5 border border-white/5 rounded-xl text-white outline-none focus:border-indigo-500/40 text-xs transition"
@@ -703,43 +713,56 @@ export default function EditIconModal({
             />
           </div>
 
-          {/* 选择分组 */}
+          {/* 内网地址（可选） */}
+          <div className="space-y-1.5">
+            <Label className="text-white/60 text-xs font-medium">{t.lanUrl}</Label>
+            <Input
+              type="text"
+              placeholder={t.lanUrlPlaceholder}
+              value={lanUrl}
+              onChange={(e) => setLanUrl(e.target.value)}
+              className="bg-white/5 border-white/5 focus-visible:ring-indigo-500/30 text-white rounded-xl placeholder-white/20"
+            />
+          </div>
+
+          {/* 所属导航与分组（两级联动） */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between h-7">
+              <div className="flex items-center h-7">
+                <Label className="text-white/60 text-xs font-medium">{t.navTabs}</Label>
+              </div>
+              <select
+                value={tabId}
+                onChange={(e) => {
+                  const tid = Number(e.target.value);
+                  setTabId(tid);
+                  const tg = groups.filter((g) => g.tabId === tid);
+                  setGroupId(tg[0]?.id ?? 0);
+                }}
+                className="w-full h-9 px-3 bg-white/5 border border-white/5 rounded-xl text-white outline-none focus:border-indigo-500/40 text-xs transition"
+              >
+                {availableTabs.map((tab) => (
+                  <option key={tab.id} value={tab.id} className="bg-[#12131a] text-white">
+                    {tab.name}（{tab.type === 'list' ? t.tabTypeList : t.tabTypeCard}）
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center h-7">
                 <Label className="text-white/60 text-xs font-medium">{t.group}</Label>
-                {/* 胶囊 Tab 切换 */}
-                <div className="flex bg-white/5 p-0.5 rounded-lg border border-white/5 text-[10px] text-white/40">
-                  <button
-                    type="button"
-                    onClick={() => handleTabChange('website')}
-                    className={`px-2 py-0.5 rounded font-medium transition cursor-pointer ${
-                      activeGroupTab === 'website' ? 'bg-white/10 text-white font-semibold' : 'hover:text-white'
-                    }`}
-                  >
-                    {t.website}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={widgetType === 'beszel' || widgetType === 'qbittorrent' || widgetType === 'jellyfin' || widgetType === 'umami' || widgetType === 'wg-easy' || widgetType === 'uptime-kuma'}
-                    onClick={() => handleTabChange('webpage')}
-                    className={`px-2 py-0.5 rounded font-medium transition ${
-                      widgetType === 'beszel' || widgetType === 'qbittorrent' || widgetType === 'jellyfin' || widgetType === 'umami' || widgetType === 'wg-easy' || widgetType === 'uptime-kuma'
-                        ? 'opacity-30 cursor-not-allowed'
-                        : 'cursor-pointer hover:text-white'
-                    } ${
-                      activeGroupTab === 'webpage' ? 'bg-white/10 text-white font-semibold' : ''
-                    }`}
-                  >
-                    {t.webpage}
-                  </button>
-                </div>
               </div>
               <select
                 value={groupId}
                 onChange={(e) => setGroupId(Number(e.target.value))}
                 className="w-full h-9 px-3 bg-white/5 border border-white/5 rounded-xl text-white outline-none focus:border-indigo-500/40 text-xs transition"
               >
+                {filteredGroups.length === 0 && (
+                  <option value={0} className="bg-[#12131a] text-white">
+                    {t.noGroupsInTab}
+                  </option>
+                )}
                 {filteredGroups.map((g) => (
                   <option key={g.id} value={g.id} className="bg-[#12131a] text-white">
                     {g.title}
@@ -747,7 +770,9 @@ export default function EditIconModal({
                 ))}
               </select>
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <div className="flex items-center h-7">
                 <Label className="text-white/60 text-xs font-medium">{t.openMethod}</Label>

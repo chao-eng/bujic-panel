@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import React, { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
@@ -15,22 +15,29 @@ import {
   SortableContext,
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Pin, ExternalLink, Edit2, Trash2 } from 'lucide-react';
+import { Pin, Edit2, Trash2, Copy, MoreVertical, Eye } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useTranslation } from './I18nProvider';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
 import BeszelWidget from './Widgets/BeszelWidget';
 import QbittorrentWidget, { formatSpeed, formatBytes } from './Widgets/QbittorrentWidget';
 import JellyfinWidget from './Widgets/JellyfinWidget';
 import UmamiWidget from './Widgets/UmamiWidget';
 import WgEasyWidget from './Widgets/WgEasyWidget';
 import UptimeKumaWidget from './Widgets/UptimeKumaWidget';
+import { resolveOpenUrl } from '../lib/openUrl';
 
 // 动态图标解析器
 export function DynamicIcon({ name, className, size = 18 }: { name: string; className?: string; size?: number }) {
   if (!name) return <Icons.Globe className={className} size={size} />;
 
-  let cleanName = name.toLowerCase().replace('lucide:', '').replace('material-symbols:', '').replace('material:', '');
-  
+  const cleanName = name.toLowerCase().replace('lucide:', '').replace('material-symbols:', '').replace('material:', '');
+
   // 映射常见名称至 PascalCase
   const lookup: { [key: string]: string } = {
     'language': 'Globe',
@@ -69,11 +76,13 @@ interface ItemIconType {
 
 interface IconGridProps {
   groupId: number;
-  groupType: 'website' | 'webpage';
+  tabType: 'card' | 'list';
   icons: ItemIconType[];
   onReorder: (newIcons: ItemIconType[]) => void;
   onEdit: (icon: ItemIconType) => void;
   onDelete: (id: number) => void;
+  onTogglePin?: (icon: ItemIconType) => void;
+  isLan?: boolean;
   widgetsStats?: Record<number, any>;
   isWidgetsLoading?: boolean;
 }
@@ -81,22 +90,28 @@ interface IconGridProps {
 // 单个可排序的书签项组件
 function SortableItem({
   iconItem,
-  groupType,
+  tabType,
   onEdit,
   onDelete,
+  onTogglePin,
+  isLan,
   widgetsStats,
   isWidgetsLoading,
 }: {
   iconItem: ItemIconType;
-  groupType: 'website' | 'webpage';
+  tabType: 'card' | 'list';
   onEdit: (icon: ItemIconType) => void;
   onDelete: (id: number) => void;
+  onTogglePin?: (icon: ItemIconType) => void;
+  isLan?: boolean;
   widgetsStats?: Record<number, any>;
   isWidgetsLoading?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: iconItem.id,
   });
+  const { t } = useTranslation();
+  const [copiedTip, setCopiedTip] = useState(false);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -105,11 +120,12 @@ function SortableItem({
     zIndex: isDragging ? 50 : 'auto',
   };
 
+  const openUrl = resolveOpenUrl(iconItem.url, iconItem.lanUrl, isLan === true);
+
   const handleClick = (e: React.MouseEvent) => {
-    // 阻止拖拽和控制按钮点击引发的默认跳转
-    if ((e.target as HTMLElement).closest('.controls-btn')) return;
-    
-    const openUrl = iconItem.url;
+    // 阻止菜单等控制元素触发跳转
+    if ((e.target as HTMLElement).closest('.controls-btn, .controls-menu')) return;
+
     const link = document.createElement('a');
     link.href = openUrl;
     link.referrerPolicy = 'no-referrer';
@@ -124,16 +140,101 @@ function SortableItem({
     document.body.removeChild(link);
   };
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('.controls-btn, .controls-menu')) return;
+    e.preventDefault();
+  };
+
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(openUrl);
+      setCopiedTip(true);
+      setTimeout(() => setCopiedTip(false), 1600);
+    } catch (err) {}
+  };
+
   const isLocalIcon =
     iconItem.icon.src.startsWith('/') ||
     iconItem.icon.src.startsWith('http') ||
     iconItem.icon.src.startsWith('data:image/');
 
-  if (groupType === 'webpage') {
-    const isWidget = !!iconItem.widgetType;
-    const statsObj = widgetsStats?.[iconItem.id];
+  const isWidget = !!iconItem.widgetType;
+  const statsObj = widgetsStats?.[iconItem.id];
 
-    // 网页模式：扁平信息流样式
+  const renderIcon = (boxCls: string, imgCls: string, iconSize: number) => (
+    <div className={`${boxCls} bg-white/5 flex items-center justify-center border border-white/5`}>
+      {isLocalIcon ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={iconItem.icon.src}
+          alt=""
+          className={imgCls}
+          onError={(e) => {
+            (e.target as HTMLElement).style.display = 'none';
+          }}
+        />
+      ) : (
+        <DynamicIcon name={iconItem.icon.src} className="text-indigo-400" size={iconSize} />
+      )}
+    </div>
+  );
+
+  // 通用悬浮菜单按钮（card 与 list 共用）
+  const renderMenu = (btnSize: number) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          onClick={(e) => e.stopPropagation()}
+          className={`controls-menu p-1.5 rounded-lg border border-white/5 bg-white/5 hover:bg-indigo-500/20 hover:text-indigo-300 transition text-white/40 cursor-pointer`}
+          title={t.actions}
+        >
+          <MoreVertical size={btnSize} />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="bg-[#12131a]/95 border-white/10 text-white/85 p-1 rounded-xl min-w-[160px]">
+        <DropdownMenuItem
+          onClick={(e) => { e.stopPropagation(); onEdit(iconItem); }}
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer text-xs"
+        >
+          <Edit2 size={13} />
+          <span>{t.cardMenuEdit}</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={(e) => { e.stopPropagation(); onTogglePin?.(iconItem); }}
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer text-xs"
+        >
+          <Pin size={13} />
+          <span>{iconItem.pinned ? t.cardMenuUnpin : t.cardMenuPin}</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={handleCopy}
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer text-xs"
+        >
+          <Copy size={13} />
+          <span>{copiedTip ? t.copied : t.cardMenuCopyLink}</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={(e) => { e.stopPropagation(); window.alert(`${t.addressNow}: ${openUrl}`); }}
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer text-xs"
+        >
+          <Eye size={13} />
+          <span>{t.cardMenuViewAddress}</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          variant="destructive"
+          onClick={(e) => { e.stopPropagation(); onDelete(iconItem.id); }}
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-red-500/15 cursor-pointer text-xs"
+        >
+          <Trash2 size={13} />
+          <span>{t.cardMenuDelete}</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  // ==== list 模式：信息流行条目 ====
+  if (tabType === 'list') {
     return (
       <div
         ref={setNodeRef}
@@ -141,148 +242,145 @@ function SortableItem({
         {...attributes}
         {...listeners}
         onClick={handleClick}
-        className="glass-panel glow-effect relative flex items-center justify-between p-4 rounded-xl cursor-pointer hover:-translate-y-0.5 group active:scale-99"
+        onContextMenu={handleContextMenu}
+        className="glass-panel relative flex items-center justify-between p-4 rounded-xl cursor-pointer hover:border-indigo-500/30 hover:bg-white/5 transition-colors group active:scale-99 select-none"
       >
-        <div className="flex items-center gap-3.5 min-w-0 pr-24 flex-1">
-          <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center border border-white/5">
-            {isLocalIcon ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={iconItem.icon.src}
-                alt=""
-                className="w-5 h-5 object-contain"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
-                }}
-              />
-            ) : (
-              <DynamicIcon name={iconItem.icon.src} className="text-indigo-400" size={18} />
-            )}
-          </div>
-          <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <h4 className="text-sm font-semibold text-white/90 truncate group-hover:text-indigo-300 transition-colors">
+        <div className="flex items-center gap-3.5 min-w-0 pr-20 flex-1">
+          {renderIcon('flex-shrink-0 w-9 h-9 rounded-lg', 'w-5 h-5 object-contain', 18)}
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <h4 className="text-sm font-semibold text-white/90 truncate group-hover:text-indigo-300 transition-colors" title={iconItem.title}>
                 {iconItem.title}
               </h4>
-              {iconItem.description && (
-                <p className="text-xs text-white/40 truncate mt-0.5">
-                  {iconItem.description}
-                </p>
-              )}
+              {iconItem.pinned && <Pin size={11} className="text-yellow-400 shrink-0" fill="currentColor" />}
             </div>
+            {iconItem.description && (
+              <p className="text-xs text-white/40 truncate mt-0.5">{iconItem.description}</p>
+            )}
+          </div>
 
-            {/* Widget inline stats */}
-            {isWidget && (
-              <div className="flex items-center gap-4 text-[10px] text-white/50 bg-white/5 px-3 py-1 rounded-lg border border-white/5">
-                {statsObj?.success ? (
-                  iconItem.widgetType === 'beszel' ? (
-                    statsObj.data.status === 'up' ? (
-                      <>
-                        <span className="flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          在线
-                        </span>
-                        <span>CPU: <span className="font-mono text-white/80">{statsObj.data.cpu.toFixed(0)}%</span></span>
-                        <span>内存: <span className="font-mono text-white/80">{statsObj.data.memory.toFixed(0)}%</span></span>
-                      </>
-                    ) : (
-                      <span className="text-white/30">服务器离线</span>
-                    )
-                  ) : iconItem.widgetType === 'qbittorrent' ? (
-                    statsObj.data.status === 'connected' || statsObj.data.status === 'online' || statsObj.data.status === 'firewalled' ? (
-                      <>
-                        <span className="flex items-center gap-1">
-                          <span className={`w-1.5 h-1.5 rounded-full ${statsObj.data.status === 'firewalled' ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`} />
-                          {statsObj.data.status === 'firewalled' ? '限流' : '在线'}
-                        </span>
-                        <span className="text-emerald-400 font-bold">↓ {formatSpeed(statsObj.data.dlSpeed)}</span>
-                        <span className="text-indigo-300 font-bold">↑ {formatSpeed(statsObj.data.upSpeed)}</span>
-                        <span className="text-white/30">|</span>
-                        <span>下载中: <span className="font-mono text-emerald-400 font-semibold">{statsObj.data.downloadingCount ?? 0}</span></span>
-                        <span>已完成: <span className="font-mono text-indigo-300 font-semibold">{statsObj.data.completedCount ?? 0}</span></span>
-                      </>
-                    ) : (
-                      <span className="text-white/30">未连接</span>
-                    )
-                  ) : iconItem.widgetType === 'jellyfin' ? (
+          {/* Widget inline stats */}
+          {isWidget && (
+            <div className="flex items-center gap-4 text-[10px] text-white/50 bg-white/5 px-3 py-1 rounded-lg border border-white/5">
+              {statsObj?.success ? (
+                iconItem.widgetType === 'beszel' ? (
+                  statsObj.data.status === 'up' ? (
                     <>
                       <span className="flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                         在线
                       </span>
-                      <span>电影: <span className="font-mono text-white/80">{statsObj.data.moviesCount}</span></span>
-                      <span>系列: <span className="font-mono text-white/80">{statsObj.data.seriesCount}</span></span>
-                      <span>剧集: <span className="font-mono text-white/80">{statsObj.data.episodesCount}</span></span>
-                      {statsObj.data.nowPlaying && statsObj.data.nowPlaying.length > 0 && (
-                        <>
-                          <span className="text-white/30">|</span>
-                          <span className="text-emerald-400 flex items-center gap-1">
-                            播放中 ({statsObj.data.nowPlaying.length})
-                          </span>
-                        </>
-                      )}
-                    </>
-                  ) : iconItem.widgetType === 'umami' ? (
-                    <>
-                      <span className="flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        监测中
-                      </span>
-                      <span>访客: <span className="font-mono text-indigo-400 font-semibold">{statsObj.data.visitors}</span></span>
-                      <span>访问: <span className="font-mono text-purple-400 font-semibold">{statsObj.data.visits}</span></span>
-                      <span>浏览: <span className="font-mono text-emerald-400 font-semibold">{statsObj.data.pageviews}</span></span>
-                    </>
-                  ) : iconItem.widgetType === 'wg-easy' ? (
-                    <>
-                      <span className="flex items-center gap-1">
-                        <span className={`w-1.5 h-1.5 rounded-full ${statsObj.data.connectedClients > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-                        {statsObj.data.connectedClients > 0 ? `${statsObj.data.connectedClients} 个连接` : '在线'}
-                      </span>
-                      <span>客户端: <span className="font-mono text-white/80">{statsObj.data.enabledClients}/{statsObj.data.totalClients}</span></span>
-                      <span>下载: <span className="font-mono text-indigo-300 font-semibold">{formatBytes(statsObj.data.totalTx)}</span></span>
-                      <span>上传: <span className="font-mono text-purple-400 font-semibold">{formatBytes(statsObj.data.totalRx)}</span></span>
+                      <span>CPU: <span className="font-mono text-white/80">{statsObj.data.cpu.toFixed(0)}%</span></span>
+                      <span>内存: <span className="font-mono text-white/80">{statsObj.data.memory.toFixed(0)}%</span></span>
                     </>
                   ) : (
-                    <span className="text-white/30">就绪</span>
+                    <span className="text-white/30">服务器离线</span>
                   )
+                ) : iconItem.widgetType === 'qbittorrent' ? (
+                  statsObj.data.status === 'connected' || statsObj.data.status === 'online' || statsObj.data.status === 'firewalled' ? (
+                    <>
+                      <span className="flex items-center gap-1">
+                        <span className={`w-1.5 h-1.5 rounded-full ${statsObj.data.status === 'firewalled' ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`} />
+                        {statsObj.data.status === 'firewalled' ? '限流' : '在线'}
+                      </span>
+                      <span className="text-emerald-400 font-bold">↓ {formatSpeed(statsObj.data.dlSpeed)}</span>
+                      <span className="text-indigo-300 font-bold">↑ {formatSpeed(statsObj.data.upSpeed)}</span>
+                      <span className="text-white/30">|</span>
+                      <span>下载中: <span className="font-mono text-emerald-400 font-semibold">{statsObj.data.downloadingCount ?? 0}</span></span>
+                      <span>已完成: <span className="font-mono text-indigo-300 font-semibold">{statsObj.data.completedCount ?? 0}</span></span>
+                    </>
+                  ) : (
+                    <span className="text-white/30">未连接</span>
+                  )
+                ) : iconItem.widgetType === 'jellyfin' ? (
+                  <>
+                    <span className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      在线
+                    </span>
+                    <span>电影: <span className="font-mono text-white/80">{statsObj.data.moviesCount}</span></span>
+                    <span>系列: <span className="font-mono text-white/80">{statsObj.data.seriesCount}</span></span>
+                    <span>剧集: <span className="font-mono text-white/80">{statsObj.data.episodesCount}</span></span>
+                    {statsObj.data.nowPlaying && statsObj.data.nowPlaying.length > 0 && (
+                      <>
+                        <span className="text-white/30">|</span>
+                        <span className="text-emerald-400 flex items-center gap-1">播放中 ({statsObj.data.nowPlaying.length})</span>
+                      </>
+                    )}
+                  </>
+                ) : iconItem.widgetType === 'umami' ? (
+                  <>
+                    <span className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      监测中
+                    </span>
+                    <span>访客: <span className="font-mono text-indigo-400 font-semibold">{statsObj.data.visitors}</span></span>
+                    <span>访问: <span className="font-mono text-purple-400 font-semibold">{statsObj.data.visits}</span></span>
+                    <span>浏览: <span className="font-mono text-emerald-400 font-semibold">{statsObj.data.pageviews}</span></span>
+                  </>
+                ) : iconItem.widgetType === 'wg-easy' ? (
+                  <>
+                    <span className="flex items-center gap-1">
+                      <span className={`w-1.5 h-1.5 rounded-full ${statsObj.data.connectedClients > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                      {statsObj.data.connectedClients > 0 ? `${statsObj.data.connectedClients} 个连接` : '在线'}
+                    </span>
+                    <span>客户端: <span className="font-mono text-white/80">{statsObj.data.enabledClients}/{statsObj.data.totalClients}</span></span>
+                    <span>下载: <span className="font-mono text-indigo-300 font-semibold">{formatBytes(statsObj.data.totalTx)}</span></span>
+                    <span>上传: <span className="font-mono text-purple-400 font-semibold">{formatBytes(statsObj.data.totalRx)}</span></span>
+                  </>
                 ) : (
-                  <span className="text-red-400/80 truncate max-w-[150px]">
-                    {statsObj?.error || (isWidgetsLoading ? '数据加载中...' : '服务连接中')}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* 控制面板 */}
-        <div className="absolute right-4 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          {iconItem.pinned && (
-            <div className="p-1.5 text-yellow-500/70" title="已置顶">
-              <Pin size={13} fill="currentColor" />
+                  <span className="text-white/30">就绪</span>
+                )
+              ) : (
+                <span className="text-red-400/80 truncate max-w-[150px]">
+                  {statsObj?.error || (isWidgetsLoading ? '数据加载中...' : '服务连接中')}
+                </span>
+              )}
             </div>
           )}
-          <button
-            onClick={(e) => { e.stopPropagation(); onEdit(iconItem); }}
-            className="controls-btn p-1.5 rounded-lg border border-white/5 bg-white/5 hover:bg-indigo-500/20 hover:text-indigo-300 transition text-white/50 cursor-pointer"
-          >
-            <Edit2 size={13} />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(iconItem.id); }}
-            className="controls-btn p-1.5 rounded-lg border border-white/5 bg-white/5 hover:bg-red-500/20 hover:text-red-400 transition text-white/50 cursor-pointer"
-          >
-            <Trash2 size={13} />
-          </button>
+        </div>
+
+        {/* 常驻操作菜单 */}
+        <div className="absolute right-4 flex items-center gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
+          {renderMenu(13)}
         </div>
       </div>
     );
   }
 
-  // 网站模式：监控组件或者普通书签卡片
-  const statsObj = widgetsStats?.[iconItem.id];
-  const isWidget = !!iconItem.widgetType;
+  // ==== card 模式：监控 Widget 或普通书签 ====
+  if (isWidget) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
+        onClick={handleClick}
+        className={`glass-panel relative flex flex-col p-5 rounded-2xl cursor-pointer hover:-translate-y-1 group select-none col-span-2 ${isWidget ? 'h-40' : ''}`}
+      >
+        <div className="absolute top-3 right-3 flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity z-10">
+          {renderMenu(12)}
+        </div>
+        {iconItem.widgetType === 'beszel' ? (
+          <BeszelWidget title={iconItem.title} stats={statsObj?.data} url={iconItem.url} error={statsObj?.success === false ? statsObj.error : undefined} isLoading={!!isWidgetsLoading} />
+        ) : iconItem.widgetType === 'qbittorrent' ? (
+          <QbittorrentWidget title={iconItem.title} stats={statsObj?.data} url={iconItem.url} error={statsObj?.success === false ? statsObj.error : undefined} isLoading={!!isWidgetsLoading} />
+        ) : iconItem.widgetType === 'jellyfin' ? (
+          <JellyfinWidget title={iconItem.title} stats={statsObj?.data} url={iconItem.url} error={statsObj?.success === false ? statsObj.error : undefined} isLoading={!!isWidgetsLoading} />
+        ) : iconItem.widgetType === 'umami' ? (
+          <UmamiWidget title={iconItem.title} stats={statsObj?.data} url={iconItem.url} error={statsObj?.success === false ? statsObj.error : undefined} isLoading={!!isWidgetsLoading} />
+        ) : iconItem.widgetType === 'wg-easy' ? (
+          <WgEasyWidget title={iconItem.title} stats={statsObj?.data} url={iconItem.url} error={statsObj?.success === false ? statsObj.error : undefined} isLoading={!!isWidgetsLoading} />
+        ) : iconItem.widgetType === 'uptime-kuma' ? (
+          <UptimeKumaWidget title={iconItem.title} stats={statsObj?.data} url={iconItem.url} error={statsObj?.success === false ? statsObj.error : undefined} isLoading={!!isWidgetsLoading} />
+        ) : null}
+      </div>
+    );
+  }
 
+  // 普通书签卡片：单层布局，hover 仅 border/底色
   return (
     <div
       ref={setNodeRef}
@@ -290,188 +388,55 @@ function SortableItem({
       {...attributes}
       {...listeners}
       onClick={handleClick}
-      className={`glass-panel glow-effect relative flex flex-col p-5 rounded-2xl cursor-pointer hover:-translate-y-1.5 group select-none h-32 active:scale-97 ${
-        isWidget ? 'col-span-2' : ''
-      }`}
+      onContextMenu={handleContextMenu}
+      className="glass-panel relative flex flex-col items-center justify-center p-5 rounded-2xl cursor-pointer hover:border-indigo-500/40 hover:bg-white/5 transition-colors duration-150 group select-none h-32"
     >
-      {/* 鼠标悬浮显现操作面板 (仅适用于监控组件) */}
-      {isWidget && (
-        <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-          {iconItem.pinned && (
-            <div className="p-1 text-yellow-400">
-              <Pin size={11} fill="currentColor" className="rotate-45" />
-            </div>
+      {/* 常驻 ⋯ 菜单（hover/激活时提亮） */}
+      <div className="absolute top-2.5 right-2.5 opacity-30 group-hover:opacity-100 transition-opacity z-10">
+        {renderMenu(12)}
+      </div>
+
+      {/* 图标 + 名称（居中） */}
+      <div className="relative mb-2">
+        <div className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center border border-white/5">
+          {isLocalIcon ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={iconItem.icon.src}
+              alt=""
+              className="w-6 h-6 object-contain"
+              onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+            />
+          ) : (
+            <DynamicIcon name={iconItem.icon.src} className="text-indigo-400" size={22} />
           )}
-          <button
-            onClick={(e) => { e.stopPropagation(); onEdit(iconItem); }}
-            className="controls-btn p-1.5 rounded-lg border border-white/5 bg-white/5 hover:bg-indigo-500/20 hover:text-indigo-300 transition text-white/50 cursor-pointer"
-          >
-            <Edit2 size={11} />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(iconItem.id); }}
-            className="controls-btn p-1.5 rounded-lg border border-white/5 bg-white/5 hover:bg-red-500/20 hover:text-red-400 transition text-white/50 cursor-pointer"
-          >
-            <Trash2 size={11} />
-          </button>
         </div>
-      )}
+        {iconItem.pinned && (
+          <span className="absolute -top-1 -right-1 text-yellow-400 bg-[#12131a]/90 border border-white/5 rounded-full p-0.5 shadow-sm">
+            <Pin size={8} fill="currentColor" className="rotate-45" />
+          </span>
+        )}
+      </div>
 
-      {iconItem.widgetType === 'beszel' ? (
-        <BeszelWidget
-          title={iconItem.title}
-          stats={statsObj?.data}
-          url={iconItem.url}
-          error={statsObj?.success === false ? statsObj.error : undefined}
-          isLoading={!!isWidgetsLoading}
-        />
-      ) : iconItem.widgetType === 'qbittorrent' ? (
-        <QbittorrentWidget
-          title={iconItem.title}
-          stats={statsObj?.data}
-          url={iconItem.url}
-          error={statsObj?.success === false ? statsObj.error : undefined}
-          isLoading={!!isWidgetsLoading}
-        />
-      ) : iconItem.widgetType === 'jellyfin' ? (
-        <JellyfinWidget
-          title={iconItem.title}
-          stats={statsObj?.data}
-          url={iconItem.url}
-          error={statsObj?.success === false ? statsObj.error : undefined}
-          isLoading={!!isWidgetsLoading}
-        />
-      ) : iconItem.widgetType === 'umami' ? (
-        <UmamiWidget
-          title={iconItem.title}
-          stats={statsObj?.data}
-          url={iconItem.url}
-          error={statsObj?.success === false ? statsObj.error : undefined}
-          isLoading={!!isWidgetsLoading}
-        />
-      ) : iconItem.widgetType === 'wg-easy' ? (
-        <WgEasyWidget
-          title={iconItem.title}
-          stats={statsObj?.data}
-          url={iconItem.url}
-          error={statsObj?.success === false ? statsObj.error : undefined}
-          isLoading={!!isWidgetsLoading}
-        />
-      ) : iconItem.widgetType === 'uptime-kuma' ? (
-        <UptimeKumaWidget
-          title={iconItem.title}
-          stats={statsObj?.data}
-          url={iconItem.url}
-          error={statsObj?.success === false ? statsObj.error : undefined}
-          isLoading={!!isWidgetsLoading}
-        />
-      ) : (
-        <>
-          {/* 默认未悬停状态：核心信息水平和垂直居中分布 */}
-          <div className="absolute inset-0 p-5 flex flex-col items-center justify-center text-center opacity-100 scale-100 group-hover:opacity-0 group-hover:scale-95 group-hover:pointer-events-none transition-all duration-300 ease-out">
-            {/* 图标与图钉 */}
-            <div className="relative mb-2">
-              <div className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center border border-white/5">
-                {isLocalIcon ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={iconItem.icon.src}
-                    alt=""
-                    className="w-6 h-6 object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <DynamicIcon name={iconItem.icon.src} className="text-indigo-400" size={22} />
-                )}
-              </div>
-              {iconItem.pinned && (
-                <span className="absolute -top-1 -right-1 text-yellow-400 bg-[#12131a]/90 border border-white/5 rounded-full p-0.5 shadow-sm">
-                  <Pin size={8} fill="currentColor" className="rotate-45" />
-                </span>
-              )}
-            </div>
-
-            {/* 标题与描述 */}
-            <div className="min-w-0 w-full px-2">
-              <h4 className="text-xs font-semibold text-white/95 flex items-center justify-center gap-0.5 w-full min-w-0">
-                <span className="truncate min-w-0">{iconItem.title}</span>
-              </h4>
-              <p className="text-[10px] text-white/30 truncate mt-0.5" title={iconItem.description || iconItem.url}>
-                {iconItem.description || iconItem.url}
-              </p>
-            </div>
-          </div>
-
-          {/* 鼠标悬停状态：信息左移、左对齐，右侧滑入纵向功能按钮 */}
-          <div className="absolute inset-0 p-5 flex items-center justify-between opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all duration-300 ease-out">
-            {/* 左侧：图标与文本垂直叠放，左对齐 */}
-            <div className="flex flex-col h-full justify-between min-w-0 flex-1 pr-4">
-              {/* 图标与图钉 */}
-              <div className="relative w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 self-start">
-                {isLocalIcon ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={iconItem.icon.src}
-                    alt=""
-                    className="w-6 h-6 object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <DynamicIcon name={iconItem.icon.src} className="text-indigo-400" size={22} />
-                )}
-                {iconItem.pinned && (
-                  <span className="absolute -top-1 -right-1 text-yellow-400 bg-[#12131a]/90 border border-white/5 rounded-full p-0.5 shadow-sm">
-                    <Pin size={8} fill="currentColor" className="rotate-45" />
-                  </span>
-                )}
-              </div>
-
-              {/* 标题与描述 */}
-              <div className="min-w-0 w-full text-left">
-                <h4 className="text-xs font-semibold text-white/95 truncate flex items-center gap-0.5">
-                  <span className="truncate">{iconItem.title}</span>
-                </h4>
-                <p className="text-[10px] text-white/30 truncate mt-0.5" title={iconItem.description || iconItem.url}>
-                  {iconItem.description || iconItem.url}
-                </p>
-              </div>
-            </div>
-
-            {/* 右侧：纵向排列的编辑/删除按钮 */}
-            <div className="flex flex-col gap-2 flex-shrink-0 pl-1">
-              <button
-                onClick={(e) => { e.stopPropagation(); onEdit(iconItem); }}
-                className="controls-btn p-1.5 rounded-lg border border-white/5 bg-white/5 hover:bg-indigo-500/20 hover:text-indigo-300 transition text-white/50 cursor-pointer"
-                title="编辑"
-              >
-                <Edit2 size={11} />
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); onDelete(iconItem.id); }}
-                className="controls-btn p-1.5 rounded-lg border border-white/5 bg-white/5 hover:bg-red-500/20 hover:text-red-400 transition text-white/50 cursor-pointer"
-                title="删除"
-              >
-                <Trash2 size={11} />
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      <h4
+        className="text-xs font-semibold text-white/95 text-center w-full min-w-0 px-4 truncate"
+        title={[iconItem.title, iconItem.description, iconItem.lanUrl && isLan ? `${t.lanUrl}: ${iconItem.lanUrl}` : ''].filter(Boolean).join(' · ')}
+      >
+        {iconItem.title}
+      </h4>
     </div>
   );
 }
 
 export default function IconGrid({
   groupId,
-  groupType,
+  tabType,
   icons,
   onReorder,
   onEdit,
   onDelete,
+  onTogglePin,
+  isLan,
   widgetsStats,
   isWidgetsLoading,
 }: IconGridProps) {
@@ -508,7 +473,7 @@ export default function IconGrid({
       <SortableContext items={icons.map((i) => i.id)} strategy={rectSortingStrategy}>
         <div
           className={
-            groupType === 'webpage'
+            tabType === 'list'
               ? 'grid grid-cols-1 gap-3'
               : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4'
           }
@@ -517,9 +482,11 @@ export default function IconGrid({
             <SortableItem
               key={icon.id}
               iconItem={icon}
-              groupType={groupType}
+              tabType={tabType}
               onEdit={onEdit}
               onDelete={onDelete}
+              onTogglePin={onTogglePin}
+              isLan={isLan}
               widgetsStats={widgetsStats}
               isWidgetsLoading={isWidgetsLoading}
             />

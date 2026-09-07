@@ -145,7 +145,10 @@ export async function addMultipleItemIconsAction(
   items: {
     title: string;
     url: string;
+    lanUrl?: string;
     description?: string;
+    openMethod?: number;
+    pinned?: boolean;
     itemIconGroupId: number;
     icon?: { itemType: number; src: string };
   }[]
@@ -156,10 +159,10 @@ export async function addMultipleItemIconsAction(
   const insertData = items.map((item) => ({
     title: item.title,
     url: item.url,
-    lanUrl: '',
+    lanUrl: item.lanUrl || '',
     description: item.description || '',
-    openMethod: 1,
-    pinned: false,
+    openMethod: item.openMethod ?? 1,
+    pinned: item.pinned ?? false,
     itemIconGroupId: item.itemIconGroupId,
     iconJson: JSON.stringify(item.icon || { itemType: 1, src: '' }),
     userId: user.id,

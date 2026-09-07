@@ -26,6 +26,7 @@ model User {
   // 关系映射
   itemIcons      ItemIcon[]
   itemIconGroups ItemIconGroup[]
+  viewTabs       ViewTab[]
   moduleConfigs  ModuleConfig[]
   files          File[]
 
@@ -70,6 +71,23 @@ model ItemIcon {
   @@map("item_icon")
 }
 
+// 对应 models.ViewTab：顶层导航 Tab（每用户一组，绑定渲染形态 card | list）
+model ViewTab {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  name      String
+  type      String   @default("card") // card | list
+  sort      Int      @default(1)
+  userId    Int      @map("user_id")
+
+  user   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groups ItemIconGroup[]
+
+  @@index([userId, sort])
+  @@map("view_tab")
+}
+
 // 对应 models.ItemIconGroup
 model ItemIconGroup {
   id          Int        @id @default(autoincrement())
@@ -79,13 +97,15 @@ model ItemIconGroup {
   title       String
   description String?
   sort        Int        @default(1)
-  groupType   String     @default("website") @map("group_type") // website | webpage
+  groupType   String     @default("website") @map("group_type") // 弃用(旧形态标记)，仅存量升级回填 tabId 用
+  tabId       Int        @default(0) @map("tab_id")             // 所属导航 Tab
   userId      Int        @map("user_id")
 
-  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tab  ViewTab    @relation(fields: [tabId], references: [id], onDelete: Cascade)
   items ItemIcon[]
 
-  @@index([userId, groupType])
+  @@index([userId, tabId])
   @@map("item_icon_group")
 }
 

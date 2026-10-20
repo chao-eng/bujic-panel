@@ -1,7 +1,6 @@
-import React from 'react';
 import { BarChart3, Users, MousePointerClick, Eye } from 'lucide-react';
 
-interface UmamiStats {
+export interface UmamiStats {
   visitors: number;
   visits: number;
   pageviews: number;
@@ -15,7 +14,7 @@ interface UmamiWidgetProps {
   isLoading: boolean;
 }
 
-export default function UmamiWidget({ title, stats, url, error, isLoading }: UmamiWidgetProps) {
+export default function UmamiWidget({ title, stats, error, isLoading }: UmamiWidgetProps) {
   // 处理错误状态
   if (error) {
     return (

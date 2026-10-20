@@ -18,6 +18,7 @@ import {
 } from '@dnd-kit/sortable';
 import { Pin, Edit2, Trash2, Copy, MoreVertical, ExternalLink } from 'lucide-react';
 import * as Icons from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from './I18nProvider';
 import {
   DropdownMenu,
@@ -26,13 +27,20 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import BeszelWidget from './Widgets/BeszelWidget';
+import type { BeszelStats } from './Widgets/BeszelWidget';
 import QbittorrentWidget, { formatSpeed, formatBytes } from './Widgets/QbittorrentWidget';
+import type { QbittorrentStats } from './Widgets/QbittorrentWidget';
 import JellyfinWidget from './Widgets/JellyfinWidget';
+import type { JellyfinStats } from './Widgets/JellyfinWidget';
 import UmamiWidget from './Widgets/UmamiWidget';
+import type { UmamiStats } from './Widgets/UmamiWidget';
 import WgEasyWidget from './Widgets/WgEasyWidget';
+import type { WgEasyStats } from './Widgets/WgEasyWidget';
 import UptimeKumaWidget from './Widgets/UptimeKumaWidget';
+import type { UptimeKumaStats } from './Widgets/UptimeKumaWidget';
 import { resolveOpenUrl } from '../lib/openUrl';
 import { safeIconSrc } from '../lib/iconSrc';
+import type { WidgetFetchResult } from '../lib/widgets/providers/types';
 
 // 动态图标解析器
 export function DynamicIcon({ name, className, size = 18 }: { name: string; className?: string; size?: number }) {
@@ -56,7 +64,8 @@ export function DynamicIcon({ name, className, size = 18 }: { name: string; clas
   };
 
   const mappedName = lookup[cleanName] || cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
-  const IconComponent = (Icons as any)[mappedName] || Icons.Globe;
+  const iconMap = Icons as unknown as Record<string, LucideIcon>;
+  const IconComponent = iconMap[mappedName] || Icons.Globe;
 
   return <IconComponent className={className} size={size} />;
 }
@@ -85,7 +94,7 @@ interface IconGridProps {
   onDelete: (id: number) => void;
   onTogglePin?: (icon: ItemIconType) => void;
   isLan?: boolean;
-  widgetsStats?: Record<number, any>;
+  widgetsStats?: Record<number, WidgetFetchResult>;
   isWidgetsLoading?: boolean;
 }
 
@@ -106,7 +115,7 @@ function SortableItem({
   onDelete: (id: number) => void;
   onTogglePin?: (icon: ItemIconType) => void;
   isLan?: boolean;
-  widgetsStats?: Record<number, any>;
+  widgetsStats?: Record<number, WidgetFetchResult>;
   isWidgetsLoading?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -227,6 +236,110 @@ function SortableItem({
 
   const isWidget = !!iconItem.widgetType;
   const statsObj = widgetsStats?.[iconItem.id];
+
+  // list 模式下的监控数据行内摘要
+  const renderWidgetStats = () => {
+    if (!statsObj?.success) {
+      return (
+        <span className="text-red-400/80 truncate max-w-[150px]">
+          {statsObj?.error || (isWidgetsLoading ? '数据加载中...' : '服务连接中')}
+        </span>
+      );
+    }
+
+    const stats = statsObj.data;
+
+    switch (iconItem.widgetType) {
+      case 'beszel': {
+        const s = stats as unknown as BeszelStats;
+        return s.status === 'up' ? (
+          <>
+            <span className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              在线
+            </span>
+            <span>CPU: <span className="font-mono text-white/80">{s.cpu.toFixed(0)}%</span></span>
+            <span>内存: <span className="font-mono text-white/80">{s.memory.toFixed(0)}%</span></span>
+          </>
+        ) : (
+          <span className="text-white/30">服务器离线</span>
+        );
+      }
+      case 'qbittorrent': {
+        const s = stats as unknown as QbittorrentStats;
+        const connected = s.status === 'connected' || s.status === 'online' || s.status === 'firewalled';
+        return connected ? (
+          <>
+            <span className="flex items-center gap-1">
+              <span className={`w-1.5 h-1.5 rounded-full ${s.status === 'firewalled' ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`} />
+              {s.status === 'firewalled' ? '限流' : '在线'}
+            </span>
+            <span className="text-emerald-400 font-bold">↓ {formatSpeed(s.dlSpeed)}</span>
+            <span className="text-indigo-300 font-bold">↑ {formatSpeed(s.upSpeed)}</span>
+            <span className="text-white/30">|</span>
+            <span>下载中: <span className="font-mono text-emerald-400 font-semibold">{s.downloadingCount ?? 0}</span></span>
+            <span>已完成: <span className="font-mono text-indigo-300 font-semibold">{s.completedCount ?? 0}</span></span>
+          </>
+        ) : (
+          <span className="text-white/30">未连接</span>
+        );
+      }
+      case 'jellyfin': {
+        const s = stats as unknown as JellyfinStats;
+        return (
+          <>
+            <span className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              在线
+            </span>
+            <span>电影: <span className="font-mono text-white/80">{s.moviesCount}</span></span>
+            <span>系列: <span className="font-mono text-white/80">{s.seriesCount}</span></span>
+            <span>剧集: <span className="font-mono text-white/80">{s.episodesCount}</span></span>
+            {s.nowPlaying && s.nowPlaying.length > 0 && (
+              <>
+                <span className="text-white/30">|</span>
+                <span className="text-emerald-400 flex items-center gap-1">播放中 ({s.nowPlaying.length})</span>
+              </>
+            )}
+          </>
+        );
+      }
+      case 'umami': {
+        const s = stats as unknown as UmamiStats;
+        return (
+          <>
+            <span className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              监测中
+            </span>
+            <span>访客: <span className="font-mono text-indigo-400 font-semibold">{s.visitors}</span></span>
+            <span>访问: <span className="font-mono text-purple-400 font-semibold">{s.visits}</span></span>
+            <span>浏览: <span className="font-mono text-emerald-400 font-semibold">{s.pageviews}</span></span>
+          </>
+        );
+      }
+      case 'wg-easy': {
+        const s = stats as unknown as WgEasyStats;
+        return (
+          <>
+            <span className="flex items-center gap-1">
+              <span className={`w-1.5 h-1.5 rounded-full ${s.connectedClients > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+              {s.connectedClients > 0 ? `${s.connectedClients} 个连接` : '在线'}
+            </span>
+            <span>客户端: <span className="font-mono text-white/80">{s.enabledClients}/{s.totalClients}</span></span>
+            <span>下载: <span className="font-mono text-indigo-300 font-semibold">{formatBytes(s.totalTx)}</span></span>
+            <span>上传: <span className="font-mono text-purple-400 font-semibold">{formatBytes(s.totalRx)}</span></span>
+          </>
+        );
+      }
+      default:
+        return <span className="text-white/30">就绪</span>;
+    }
+  };
+
+  // 卡片模式下传入各监控组件的实时数据与错误信息
+  const cardStats = statsObj?.success ? statsObj.data : undefined;
+  const cardError = statsObj?.success === false ? statsObj.error : undefined;
 
   const renderIcon = (boxCls: string, imgCls: string, iconSize: number) => (
     <div className={`${boxCls} bg-white/5 flex items-center justify-center border border-white/5`}>
@@ -365,80 +478,7 @@ function SortableItem({
           {/* Widget inline stats */}
           {isWidget && (
             <div className="flex items-center gap-4 text-[10px] text-white/50 bg-white/5 px-3 py-1 rounded-lg border border-white/5">
-              {statsObj?.success ? (
-                iconItem.widgetType === 'beszel' ? (
-                  statsObj.data.status === 'up' ? (
-                    <>
-                      <span className="flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        在线
-                      </span>
-                      <span>CPU: <span className="font-mono text-white/80">{statsObj.data.cpu.toFixed(0)}%</span></span>
-                      <span>内存: <span className="font-mono text-white/80">{statsObj.data.memory.toFixed(0)}%</span></span>
-                    </>
-                  ) : (
-                    <span className="text-white/30">服务器离线</span>
-                  )
-                ) : iconItem.widgetType === 'qbittorrent' ? (
-                  statsObj.data.status === 'connected' || statsObj.data.status === 'online' || statsObj.data.status === 'firewalled' ? (
-                    <>
-                      <span className="flex items-center gap-1">
-                        <span className={`w-1.5 h-1.5 rounded-full ${statsObj.data.status === 'firewalled' ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`} />
-                        {statsObj.data.status === 'firewalled' ? '限流' : '在线'}
-                      </span>
-                      <span className="text-emerald-400 font-bold">↓ {formatSpeed(statsObj.data.dlSpeed)}</span>
-                      <span className="text-indigo-300 font-bold">↑ {formatSpeed(statsObj.data.upSpeed)}</span>
-                      <span className="text-white/30">|</span>
-                      <span>下载中: <span className="font-mono text-emerald-400 font-semibold">{statsObj.data.downloadingCount ?? 0}</span></span>
-                      <span>已完成: <span className="font-mono text-indigo-300 font-semibold">{statsObj.data.completedCount ?? 0}</span></span>
-                    </>
-                  ) : (
-                    <span className="text-white/30">未连接</span>
-                  )
-                ) : iconItem.widgetType === 'jellyfin' ? (
-                  <>
-                    <span className="flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      在线
-                    </span>
-                    <span>电影: <span className="font-mono text-white/80">{statsObj.data.moviesCount}</span></span>
-                    <span>系列: <span className="font-mono text-white/80">{statsObj.data.seriesCount}</span></span>
-                    <span>剧集: <span className="font-mono text-white/80">{statsObj.data.episodesCount}</span></span>
-                    {statsObj.data.nowPlaying && statsObj.data.nowPlaying.length > 0 && (
-                      <>
-                        <span className="text-white/30">|</span>
-                        <span className="text-emerald-400 flex items-center gap-1">播放中 ({statsObj.data.nowPlaying.length})</span>
-                      </>
-                    )}
-                  </>
-                ) : iconItem.widgetType === 'umami' ? (
-                  <>
-                    <span className="flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      监测中
-                    </span>
-                    <span>访客: <span className="font-mono text-indigo-400 font-semibold">{statsObj.data.visitors}</span></span>
-                    <span>访问: <span className="font-mono text-purple-400 font-semibold">{statsObj.data.visits}</span></span>
-                    <span>浏览: <span className="font-mono text-emerald-400 font-semibold">{statsObj.data.pageviews}</span></span>
-                  </>
-                ) : iconItem.widgetType === 'wg-easy' ? (
-                  <>
-                    <span className="flex items-center gap-1">
-                      <span className={`w-1.5 h-1.5 rounded-full ${statsObj.data.connectedClients > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-                      {statsObj.data.connectedClients > 0 ? `${statsObj.data.connectedClients} 个连接` : '在线'}
-                    </span>
-                    <span>客户端: <span className="font-mono text-white/80">{statsObj.data.enabledClients}/{statsObj.data.totalClients}</span></span>
-                    <span>下载: <span className="font-mono text-indigo-300 font-semibold">{formatBytes(statsObj.data.totalTx)}</span></span>
-                    <span>上传: <span className="font-mono text-purple-400 font-semibold">{formatBytes(statsObj.data.totalRx)}</span></span>
-                  </>
-                ) : (
-                  <span className="text-white/30">就绪</span>
-                )
-              ) : (
-                <span className="text-red-400/80 truncate max-w-[150px]">
-                  {statsObj?.error || (isWidgetsLoading ? '数据加载中...' : '服务连接中')}
-                </span>
-              )}
+              {renderWidgetStats()}
             </div>
           )}
         </div>
@@ -468,17 +508,17 @@ function SortableItem({
           {renderMenu(12)}
         </div>
         {iconItem.widgetType === 'beszel' ? (
-          <BeszelWidget title={iconItem.title} stats={statsObj?.data} url={iconItem.url} error={statsObj?.success === false ? statsObj.error : undefined} isLoading={!!isWidgetsLoading} />
+          <BeszelWidget title={iconItem.title} stats={cardStats as unknown as BeszelStats} url={iconItem.url} error={cardError} isLoading={!!isWidgetsLoading} />
         ) : iconItem.widgetType === 'qbittorrent' ? (
-          <QbittorrentWidget title={iconItem.title} stats={statsObj?.data} url={iconItem.url} error={statsObj?.success === false ? statsObj.error : undefined} isLoading={!!isWidgetsLoading} />
+          <QbittorrentWidget title={iconItem.title} stats={cardStats as unknown as QbittorrentStats} url={iconItem.url} error={cardError} isLoading={!!isWidgetsLoading} />
         ) : iconItem.widgetType === 'jellyfin' ? (
-          <JellyfinWidget title={iconItem.title} stats={statsObj?.data} url={iconItem.url} error={statsObj?.success === false ? statsObj.error : undefined} isLoading={!!isWidgetsLoading} />
+          <JellyfinWidget title={iconItem.title} stats={cardStats as unknown as JellyfinStats} url={iconItem.url} error={cardError} isLoading={!!isWidgetsLoading} />
         ) : iconItem.widgetType === 'umami' ? (
-          <UmamiWidget title={iconItem.title} stats={statsObj?.data} url={iconItem.url} error={statsObj?.success === false ? statsObj.error : undefined} isLoading={!!isWidgetsLoading} />
+          <UmamiWidget title={iconItem.title} stats={cardStats as unknown as UmamiStats} url={iconItem.url} error={cardError} isLoading={!!isWidgetsLoading} />
         ) : iconItem.widgetType === 'wg-easy' ? (
-          <WgEasyWidget title={iconItem.title} stats={statsObj?.data} url={iconItem.url} error={statsObj?.success === false ? statsObj.error : undefined} isLoading={!!isWidgetsLoading} />
+          <WgEasyWidget title={iconItem.title} stats={cardStats as unknown as WgEasyStats} url={iconItem.url} error={cardError} isLoading={!!isWidgetsLoading} />
         ) : iconItem.widgetType === 'uptime-kuma' ? (
-          <UptimeKumaWidget title={iconItem.title} stats={statsObj?.data} url={iconItem.url} error={statsObj?.success === false ? statsObj.error : undefined} isLoading={!!isWidgetsLoading} />
+          <UptimeKumaWidget title={iconItem.title} stats={cardStats as unknown as UptimeKumaStats} url={iconItem.url} error={cardError} isLoading={!!isWidgetsLoading} />
         ) : null}
         {renderContextMenu()}
       </div>

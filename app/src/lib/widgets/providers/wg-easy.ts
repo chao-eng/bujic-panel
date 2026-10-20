@@ -1,8 +1,16 @@
-import { WidgetProvider } from './types';
+import { WidgetProvider, WidgetSettings, WidgetData, getErrorMessage, isAbortError } from './types';
+
+interface WgClient {
+  enabled?: boolean;
+  latestHandshakeAt?: string;
+  lastHandshakeAt?: string;
+  transferRx?: number | string;
+  transferTx?: number | string;
+}
 
 export class WgEasyProvider implements WidgetProvider {
-  async fetchData(url: string, settings: any): Promise<any> {
-    const { password } = settings;
+  async fetchData(url: string, settings: WidgetSettings): Promise<WidgetData> {
+    const { password } = settings as { password?: string };
 
     // 规范化 URL，去除末尾斜杠
     const baseUrl = url.replace(/\/+$/, '');
@@ -50,8 +58,8 @@ export class WgEasyProvider implements WidgetProvider {
 
       // 3. 拉取客户端列表数据 (采用多端点回退机制)
       const paths = ['/api/client', '/api/wireguard/client', '/api/clients'];
-      let clients: any = null;
-      let lastError: any = null;
+      let clients: WgClient[] | null = null;
+      let lastError: unknown = null;
 
       for (const path of paths) {
         try {
@@ -71,7 +79,7 @@ export class WgEasyProvider implements WidgetProvider {
           } else {
             lastError = new Error(`请求 ${path} 失败 (HTTP ${clientsRes.status})`);
           }
-        } catch (err: any) {
+        } catch (err) {
           lastError = err;
         }
       }
@@ -82,11 +90,11 @@ export class WgEasyProvider implements WidgetProvider {
 
       // 4. 解析客户端指标
       const totalClients = clients.length;
-      const enabledClients = clients.filter((c: any) => c.enabled).length;
+      const enabledClients = clients.filter((c) => c.enabled).length;
 
       // 活跃客户端：已启用且在最近 2 分钟（120秒）内进行过握手
       const now = Date.now();
-      const connectedClients = clients.filter((c: any) => {
+      const connectedClients = clients.filter((c) => {
         if (!c.enabled) return false;
         const handshake = c.latestHandshakeAt || c.lastHandshakeAt;
         if (!handshake) return false;
@@ -95,8 +103,8 @@ export class WgEasyProvider implements WidgetProvider {
       }).length;
 
       // 流量统计（从服务器视角：Rx为接收客户端发送来的数据即上传，Tx为发送给客户端的数据即下载）
-      const totalRx = clients.reduce((acc: number, c: any) => acc + (Number(c.transferRx) || 0), 0);
-      const totalTx = clients.reduce((acc: number, c: any) => acc + (Number(c.transferTx) || 0), 0);
+      const totalRx = clients.reduce((acc: number, c) => acc + (Number(c.transferRx) || 0), 0);
+      const totalTx = clients.reduce((acc: number, c) => acc + (Number(c.transferTx) || 0), 0);
 
       return {
         totalClients,
@@ -105,12 +113,12 @@ export class WgEasyProvider implements WidgetProvider {
         totalRx,
         totalTx,
       };
-    } catch (e: any) {
+    } catch (e) {
       console.error('[Wg-Easy Provider] Error fetching stats:', e);
-      if (e.name === 'AbortError') {
+      if (isAbortError(e)) {
         throw new Error('Wg-Easy 连接超时');
       }
-      throw new Error(e.message || '连接 Wg-Easy 失败');
+      throw new Error(getErrorMessage(e) || '连接 Wg-Easy 失败');
     } finally {
       clearTimeout(id);
     }

@@ -1,8 +1,13 @@
-import { WidgetProvider } from './types';
+import { WidgetProvider, WidgetSettings, WidgetData, getErrorMessage, isAbortError } from './types';
+
+interface QbTorrent {
+  state?: string;
+  progress?: number;
+}
 
 export class QbittorrentProvider implements WidgetProvider {
-  async fetchData(url: string, settings: any): Promise<any> {
-    const { username, password } = settings;
+  async fetchData(url: string, settings: WidgetSettings): Promise<WidgetData> {
+    const { username, password } = settings as { username?: string; password?: string };
     if (!username || !password) {
       throw new Error('未配置用户名或密码');
     }
@@ -26,12 +31,12 @@ export class QbittorrentProvider implements WidgetProvider {
         signal: controller.signal,
         cache: 'no-store',
       });
-    } catch (e: any) {
+    } catch (e) {
       console.error('[qBittorrent Provider] Login Connection Error:', e);
-      if (e.name === 'AbortError') {
+      if (isAbortError(e)) {
         throw new Error('qBittorrent 登录超时');
       }
-      throw new Error(`连接 qBittorrent 失败: ${e.message}`);
+      throw new Error(`连接 qBittorrent 失败: ${getErrorMessage(e)}`);
     } finally {
       clearTimeout(id);
     }
@@ -80,12 +85,12 @@ export class QbittorrentProvider implements WidgetProvider {
           cache: 'no-store',
         })
       ]);
-    } catch (e: any) {
+    } catch (e) {
       console.error('[qBittorrent Provider] Concurrency Stats Connection Error:', e);
-      if (e.name === 'AbortError') {
+      if (isAbortError(e)) {
         throw new Error('qBittorrent 数据拉取超时');
       }
-      throw new Error(`连接 qBittorrent 拉取数据失败: ${e.message}`);
+      throw new Error(`连接 qBittorrent 拉取数据失败: ${getErrorMessage(e)}`);
     } finally {
       clearTimeout(id2);
     }
@@ -104,11 +109,11 @@ export class QbittorrentProvider implements WidgetProvider {
     const downloadingStates = ['downloading', 'stalledDL', 'checkingDL', 'forcedDL', 'metaDL'];
 
     if (Array.isArray(torrentsList)) {
-      torrentsList.forEach((t: any) => {
-        if (downloadingStates.includes(t.state)) {
+      (torrentsList as QbTorrent[]).forEach((t) => {
+        if (t.state && downloadingStates.includes(t.state)) {
           downloadingCount++;
         }
-        if (t.progress >= 1.0) {
+        if ((t.progress ?? 0) >= 1.0) {
           completedCount++;
         }
       });

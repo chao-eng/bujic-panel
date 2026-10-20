@@ -1,8 +1,14 @@
-import { WidgetProvider } from './types';
+import { WidgetProvider, WidgetSettings, WidgetData, getErrorMessage, isAbortError } from './types';
+
+interface KumaHeartbeat {
+  status?: number;
+  ping?: number;
+}
 
 export class UptimeKumaProvider implements WidgetProvider {
-  async fetchData(url: string, settings: any): Promise<any> {
-    const slug = (settings.slug || 'default').trim();
+  async fetchData(url: string, settings: WidgetSettings): Promise<WidgetData> {
+    const { slug: slugSetting } = settings as { slug?: string };
+    const slug = (slugSetting || 'default').trim();
 
     // 规范化 URL，去除末尾斜杠
     const baseUrl = url.replace(/\/+$/, '');
@@ -22,7 +28,7 @@ export class UptimeKumaProvider implements WidgetProvider {
       }
 
       const data = await response.json();
-      const heartbeatList = data.heartbeatList;
+      const heartbeatList = (data as { heartbeatList?: Record<string, KumaHeartbeat[]> }).heartbeatList;
 
       if (!heartbeatList || typeof heartbeatList !== 'object') {
         throw new Error('未获取到有效心跳列表，请确认 Uptime Kuma 状态页 Slug 是否正确，并且状态页为公开状态');
@@ -63,12 +69,12 @@ export class UptimeKumaProvider implements WidgetProvider {
         downMonitors,
         avgPing,
       };
-    } catch (e: any) {
+    } catch (e) {
       console.error('[Uptime Kuma Provider] Error fetching stats:', e);
-      if (e.name === 'AbortError') {
+      if (isAbortError(e)) {
         throw new Error('Uptime Kuma 请求超时');
       }
-      throw new Error(e.message || '连接 Uptime Kuma 失败');
+      throw new Error(getErrorMessage(e) || '连接 Uptime Kuma 失败');
     } finally {
       clearTimeout(id);
     }

@@ -1,7 +1,6 @@
-import React from 'react';
 import { Activity, Clock, ShieldCheck, ShieldAlert } from 'lucide-react';
 
-interface UptimeKumaStats {
+export interface UptimeKumaStats {
   totalMonitors: number;
   upMonitors: number;
   downMonitors: number;
@@ -16,7 +15,7 @@ interface UptimeKumaWidgetProps {
   isLoading: boolean;
 }
 
-export default function UptimeKumaWidget({ title, stats, url, error, isLoading }: UptimeKumaWidgetProps) {
+export default function UptimeKumaWidget({ title, stats, error, isLoading }: UptimeKumaWidgetProps) {
   // 错误状态
   if (error) {
     return (

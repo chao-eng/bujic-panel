@@ -1,8 +1,7 @@
-import React from 'react';
 import { Shield, ArrowDown, ArrowUp, Users } from 'lucide-react';
 import { formatBytes } from './QbittorrentWidget';
 
-interface WgEasyStats {
+export interface WgEasyStats {
   totalClients: number;
   enabledClients: number;
   connectedClients: number;
@@ -18,7 +17,7 @@ interface WgEasyWidgetProps {
   isLoading: boolean;
 }
 
-export default function WgEasyWidget({ title, stats, url, error, isLoading }: WgEasyWidgetProps) {
+export default function WgEasyWidget({ title, stats, error, isLoading }: WgEasyWidgetProps) {
   // 错误状态
   if (error) {
     return (

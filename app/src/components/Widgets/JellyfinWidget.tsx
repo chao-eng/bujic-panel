@@ -1,7 +1,6 @@
-import React from 'react';
 import { Film, Play, Pause } from 'lucide-react';
 
-interface NowPlayingItem {
+export interface NowPlayingItem {
   id: string;
   userName: string;
   client: string;
@@ -12,7 +11,7 @@ interface NowPlayingItem {
   isPaused: boolean;
 }
 
-interface JellyfinStats {
+export interface JellyfinStats {
   moviesCount: number;
   seriesCount: number;
   episodesCount: number;
@@ -27,7 +26,7 @@ interface JellyfinWidgetProps {
   isLoading: boolean;
 }
 
-export default function JellyfinWidget({ title, stats, url, error, isLoading }: JellyfinWidgetProps) {
+export default function JellyfinWidget({ title, stats, error, isLoading }: JellyfinWidgetProps) {
   // 处理错误状态
   if (error) {
     return (

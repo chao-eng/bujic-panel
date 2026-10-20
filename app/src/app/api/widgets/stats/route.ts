@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyRequestAuth } from '../../../../lib/auth';
 import { db } from '../../../../lib/db';
 import { widgetProviders } from '../../../../lib/widgets/providers';
+import { WidgetFetchResult, WidgetSettings, getErrorMessage } from '../../../../lib/widgets/providers/types';
 
 // 简单超时控制包装函数
 function promiseTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
     });
 
     // 3. 并发拉取对应组件的数据
-    const results: Record<number, { success: boolean; data?: any; error?: string }> = {};
+    const results: Record<number, WidgetFetchResult> = {};
     
     await Promise.all(
       bookmarks.map(async (bk) => {
@@ -54,12 +55,12 @@ export async function GET(req: NextRequest) {
         }
 
         try {
-          const settings = JSON.parse(bk.widgetSettings || '{}');
+          const settings = JSON.parse(bk.widgetSettings || '{}') as WidgetSettings;
           // 调用对应 Provider 拉取数据 (使用 bk.url 作为 API 基础地址)
           const stats = await promiseTimeout(provider.fetchData(bk.url, settings), 5000);
           results[bk.id] = { success: true, data: stats };
-        } catch (err: any) {
-          results[bk.id] = { success: false, error: err.message || '数据拉取失败' };
+        } catch (err) {
+          results[bk.id] = { success: false, error: getErrorMessage(err) || '数据拉取失败' };
         }
       })
     );
@@ -68,7 +69,7 @@ export async function GET(req: NextRequest) {
       code: 0,
       data: results,
     });
-  } catch (e: any) {
-    return NextResponse.json({ code: 500, message: e.message || '内部服务器错误' }, { status: 500 });
+  } catch (e) {
+    return NextResponse.json({ code: 500, message: getErrorMessage(e) || '内部服务器错误' }, { status: 500 });
   }
 }

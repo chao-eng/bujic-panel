@@ -1,7 +1,6 @@
-import React from 'react';
 import { DownloadCloud, ArrowDown, ArrowUp } from 'lucide-react';
 
-interface QbittorrentStats {
+export interface QbittorrentStats {
   dlSpeed: number;
   upSpeed: number;
   dlData: number;
@@ -41,7 +40,7 @@ export function formatBytes(bytes: number): string {
   return `${val.toFixed(1)} ${units[i]}`;
 }
 
-export default function QbittorrentWidget({ title, stats, url, error, isLoading }: QbittorrentWidgetProps) {
+export default function QbittorrentWidget({ title, stats, error, isLoading }: QbittorrentWidgetProps) {
   // 错误状态
   if (error) {
     return (

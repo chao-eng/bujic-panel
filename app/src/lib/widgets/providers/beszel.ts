@@ -1,8 +1,14 @@
-import { WidgetProvider } from './types';
+import { WidgetProvider, WidgetSettings, WidgetData, getErrorMessage, isAbortError } from './types';
+
+interface BeszelSettings {
+  email?: string;
+  password?: string;
+  systemName?: string;
+}
 
 export class BeszelProvider implements WidgetProvider {
-  async fetchData(url: string, settings: any): Promise<any> {
-    const { email, password, systemName } = settings;
+  async fetchData(url: string, settings: WidgetSettings): Promise<WidgetData> {
+    const { email, password, systemName } = settings as BeszelSettings;
     if (!email || !password || !systemName) {
       throw new Error('未配置完整的凭证 (Email, Password 或 System Name)');
     }
@@ -12,7 +18,7 @@ export class BeszelProvider implements WidgetProvider {
 
     // 1. 进行 PocketBase 普通用户身份验证
     const authUrl = `${baseUrl}/api/collections/users/auth-with-password`;
-    
+
     // 设置 5s 超时以保证总响应时间
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), 5000);
@@ -26,12 +32,12 @@ export class BeszelProvider implements WidgetProvider {
         signal: controller.signal,
         cache: 'no-store',
       });
-    } catch (e: any) {
+    } catch (e) {
       console.error('[Beszel Provider] Auth Connection Error:', e);
-      if (e.name === 'AbortError') {
+      if (isAbortError(e)) {
         throw new Error('Beszel 认证请求超时');
       }
-      throw new Error(`连接 Beszel 失败: ${e.message}`);
+      throw new Error(`连接 Beszel 失败: ${getErrorMessage(e)}`);
     } finally {
       clearTimeout(id);
     }
@@ -42,7 +48,7 @@ export class BeszelProvider implements WidgetProvider {
       try {
         const errJson = JSON.parse(errorText);
         errMsg = errJson.message || errMsg;
-      } catch (err) {}
+      } catch {}
       throw new Error(`Beszel 认证失败: ${errMsg}`);
     }
 
@@ -67,12 +73,12 @@ export class BeszelProvider implements WidgetProvider {
         signal: controller2.signal,
         cache: 'no-store',
       });
-    } catch (e: any) {
+    } catch (e) {
       console.error('[Beszel Provider] Fetch Stats Connection Error:', e);
-      if (e.name === 'AbortError') {
+      if (isAbortError(e)) {
         throw new Error('Beszel 数据请求超时');
       }
-      throw new Error(`请求 Beszel 数据失败: ${e.message}`);
+      throw new Error(`请求 Beszel 数据失败: ${getErrorMessage(e)}`);
     } finally {
       clearTimeout(id2);
     }
@@ -83,7 +89,7 @@ export class BeszelProvider implements WidgetProvider {
       try {
         const errJson = JSON.parse(errorText);
         errMsg = errJson.message || errMsg;
-      } catch (err) {}
+      } catch {}
       throw new Error(`Beszel 获取数据失败: ${errMsg}`);
     }
 

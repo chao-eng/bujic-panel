@@ -1,7 +1,6 @@
-import React from 'react';
 import { Server } from 'lucide-react';
 
-interface BeszelStats {
+export interface BeszelStats {
   status: 'up' | 'down';
   cpu: number;
   memory: number;
@@ -33,7 +32,7 @@ function formatUptime(seconds: number): string {
   return `${mins}分`;
 }
 
-export default function BeszelWidget({ title, stats, url, error, isLoading }: BeszelWidgetProps) {
+export default function BeszelWidget({ title, stats, error, isLoading }: BeszelWidgetProps) {
   // 处理错误状态
   if (error) {
     return (

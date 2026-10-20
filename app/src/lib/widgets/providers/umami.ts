@@ -1,8 +1,19 @@
-import { WidgetProvider } from './types';
+import { WidgetProvider, WidgetSettings, WidgetData, getErrorMessage, isAbortError } from './types';
+
+interface UmamiSettings {
+  username?: string;
+  password?: string;
+  domain?: string;
+}
+
+interface UmamiSite {
+  id?: string;
+  domain?: string;
+}
 
 export class UmamiProvider implements WidgetProvider {
-  async fetchData(url: string, settings: any): Promise<any> {
-    const { username, password, domain } = settings;
+  async fetchData(url: string, settings: WidgetSettings): Promise<WidgetData> {
+    const { username, password, domain } = settings as UmamiSettings;
     if (!username || !password || !domain) {
       throw new Error('未配置完整的凭证 (Username, Password 或 Domain)');
     }
@@ -25,9 +36,9 @@ export class UmamiProvider implements WidgetProvider {
           signal: controller.signal,
           cache: 'no-store',
         });
-      } catch (e: any) {
+      } catch (e) {
         console.error('[Umami Provider] Auth connection error:', e);
-        throw new Error(`连接 Umami 认证失败: ${e.message}`);
+        throw new Error(`连接 Umami 认证失败: ${getErrorMessage(e)}`);
       }
 
       if (!authRes.ok) {
@@ -57,9 +68,9 @@ export class UmamiProvider implements WidgetProvider {
       }
 
       const websitesData = await websitesRes.json();
-      const sitesList = Array.isArray(websitesData) ? websitesData : (websitesData.data || []);
+      const sitesList: UmamiSite[] = Array.isArray(websitesData) ? websitesData : (websitesData.data || []);
 
-      const targetSite = sitesList.find((site: any) => {
+      const targetSite = sitesList.find((site) => {
         if (!site || !site.domain) return false;
         return site.domain.toLowerCase().trim() === domain.toLowerCase().trim();
       });
@@ -91,13 +102,14 @@ export class UmamiProvider implements WidgetProvider {
 
       const statsData = await statsRes.json();
 
-      const parseMetric = (val: any): number => {
+      const parseMetric = (val: unknown): number => {
         if (val === null || val === undefined) return 0;
         if (typeof val === 'number') return val;
         if (typeof val === 'object') {
-          if (typeof val.value === 'number') return val.value;
-          if (typeof val.value === 'string') {
-            const p = parseInt(val.value, 10);
+          const inner = (val as { value?: unknown }).value;
+          if (typeof inner === 'number') return inner;
+          if (typeof inner === 'string') {
+            const p = parseInt(inner, 10);
             return isNaN(p) ? 0 : p;
           }
         }
@@ -117,12 +129,12 @@ export class UmamiProvider implements WidgetProvider {
         visits,
         pageviews,
       };
-    } catch (e: any) {
+    } catch (e) {
       console.error('[Umami Provider] Error fetching stats:', e);
-      if (e.name === 'AbortError') {
+      if (isAbortError(e)) {
         throw new Error('Umami 请求超时');
       }
-      throw new Error(e.message || '连接 Umami 失败');
+      throw new Error(getErrorMessage(e) || '连接 Umami 失败');
     } finally {
       clearTimeout(id);
     }

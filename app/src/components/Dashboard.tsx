@@ -68,6 +68,7 @@ interface DashboardProps {
     headImage: string | null;
     role: number;
     mail: string | null;
+    createdAt: string;
   };
   initialTabs: ViewTabType[];
   initialGroups: GroupType[];
@@ -740,9 +741,15 @@ export default function Dashboard({
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         currentUser={currentUser}
+        dataStats={{
+          tabs: tabs.length,
+          groups: groups.length,
+          bookmarks: icons.length,
+          widgets: icons.filter((x) => !!x.widgetType).length,
+        }}
         initialBrandName={initialBrandName}
         initialBrandIcon={initialBrandIcon}
-        onRefreshUser={setCurrentUser}
+        onRefreshUser={(updatedUser) => setCurrentUser((prev) => ({ ...prev, ...updatedUser }))}
       />
 
       <ConfirmDeleteModal

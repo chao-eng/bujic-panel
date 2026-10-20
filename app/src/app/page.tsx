@@ -85,6 +85,7 @@ export default async function HomePage() {
     headImage: user.headImage,
     role: user.role,
     mail: user.mail,
+    createdAt: user.createdAt.toISOString(),
   };
 
   // 序列化为前端可用的纯对象（去掉 Prisma 附加字段）

@@ -1,4 +1,4 @@
-import md5 from 'js-md5';
+import { md5 } from 'js-md5';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { db } from './db';
@@ -7,7 +7,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'bujic-panel-super-secret-key-12345
 const SECRET_KEY = new TextEncoder().encode(JWT_SECRET);
 
 export function hashMD5(str: string): string {
-  return (md5 as any)(str);
+  return md5(str);
 }
 
 // 三重 MD5 加密
@@ -54,6 +54,7 @@ export async function getCurrentUser() {
         status: true,
         role: true,
         mail: true,
+        createdAt: true,
       },
     });
 

@@ -79,7 +79,7 @@ async function syncDatabaseSchema() {
         console.warn(`[Start] 未找到 DDL 脚本: ${schemaSqlPath}，跳过表初始化。请在开发环境运行 pnpm db:sql 生成此文件。`);
       }
     } else {
-      // 2b. 存量库增量升级：为旧库补齐缺失的 view_tab 表 / item_icon_group.tab_id 列
+      // 2b. 存量库增量升级：按最新 DDL 为旧库补齐缺失的表与列
       //     通过建表/加列兜底（不破坏既有数据），后续数据回填在 seed 前由升级函数完成。
       await upgradeExistingSchema();
     }
@@ -91,35 +91,39 @@ async function syncDatabaseSchema() {
   }
 }
 
-// 幂等的存量结构升级：缺失则补 view_tab 表与 item_icon_group.tab_id 列
+// 表是否已存在
+async function tableExists(name) {
+  const rows = await prisma.$queryRaw`SELECT name FROM sqlite_master WHERE type = 'table' AND name = ${name}`;
+  return Array.isArray(rows) && rows.length > 0;
+}
+
+// 幂等的存量结构升级：缺失则按 current.sql 补表，并补 item_icon_group.tab_id 列
 async function upgradeExistingSchema() {
-  // 1. 确保 view_tab 表存在
-  let hasViewTab = false;
-  try {
-    await prisma.$queryRaw`SELECT 1 FROM "view_tab" LIMIT 1`;
-    hasViewTab = true;
-  } catch {
-    hasViewTab = false;
-  }
-  if (!hasViewTab) {
-    console.log("[Start] 存量库缺少 view_tab 表，正在补充...");
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "view_tab" (
-        "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-        "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updated_at" DATETIME NOT NULL,
-        "name" TEXT NOT NULL,
-        "type" TEXT NOT NULL DEFAULT 'card',
-        "sort" INTEGER NOT NULL DEFAULT 1,
-        "user_id" INTEGER NOT NULL
-      )
-    `);
-    try {
-      await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX "view_tab_id_key" ON "view_tab"("id")`);
-    } catch {}
-    try {
-      await prisma.$executeRawUnsafe(`CREATE INDEX "view_tab_user_id_sort_idx" ON "view_tab"("user_id", "sort")`);
-    } catch {}
+  // 1. 逐个检测 current.sql 里的表，缺哪张建哪张
+  //    旧版本升级上来的库会缺新功能用到的表（例如 MCP 令牌表的 mcp_token）
+  const schemaSqlPath = path.join(__dirname, 'prisma', 'current.sql');
+  if (fs.existsSync(schemaSqlPath)) {
+    const sql = fs.readFileSync(schemaSqlPath, 'utf8');
+    const statements = splitSqlStatements(sql);
+
+    for (const statement of statements) {
+      const tableMatch = statement.match(/^CREATE TABLE "([^"]+)"/i);
+      if (tableMatch) {
+        const table = tableMatch[1];
+        if (await tableExists(table)) continue;
+        await prisma.$executeRawUnsafe(statement);
+        console.log(`[Start] 存量库缺少 ${table} 表，已按最新结构补充。`);
+        continue;
+      }
+      // 索引：表已存在时索引也已存在，重复创建会失败，忽略即可
+      if (/^CREATE (UNIQUE )?INDEX/i.test(statement)) {
+        try {
+          await prisma.$executeRawUnsafe(statement);
+        } catch {}
+      }
+    }
+  } else {
+    console.warn(`[Start] 未找到 DDL 脚本: ${schemaSqlPath}，跳过存量表补齐。`);
   }
 
   // 2. 确保 item_icon_group.tab_id 列存在

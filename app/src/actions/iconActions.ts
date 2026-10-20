@@ -4,39 +4,14 @@ import { db } from '../lib/db';
 import { getCurrentUser } from '../lib/auth';
 import { revalidatePath } from 'next/cache';
 import { decryptFromTransport } from '../lib/crypto';
+import * as panel from '../lib/panelService';
 
 // 获取分组下的书签列表
 export async function getIconsByGroupIdAction(groupId: number) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Unauthorized');
 
-  const icons = await db.itemIcon.findMany({
-    where: {
-      userId: user.id,
-      itemIconGroupId: groupId,
-    },
-    orderBy: [
-      { pinned: 'desc' }, // 置顶项在前
-      { sort: 'asc' },    // 按拖拽排序升序
-      { createdAt: 'desc' }, // 创建时间从新到旧
-    ],
-  });
-
-  // 解析 iconJson
-  return icons.map((icon) => {
-    let iconParsed = { itemType: 1, src: '' };
-    try {
-      if (icon.iconJson) {
-        iconParsed = JSON.parse(icon.iconJson);
-      }
-    } catch (e) {
-      // 容错
-    }
-    return {
-      ...icon,
-      icon: iconParsed,
-    };
-  });
+  return panel.listBookmarksByGroup(user.id, groupId);
 }
 
 // 编辑/新增书签
@@ -61,67 +36,26 @@ export async function editItemIconAction(data: {
     throw new Error('Group is mandatory');
   }
 
-  // 1. URL 查重 (监控组件允许配置重复连接，只对普通书签进行查重)
-  if (data.url && !data.widgetType) {
-    const existing = await db.itemIcon.findFirst({
-      where: {
-        url: data.url,
-        userId: user.id,
-        widgetType: '', // 只与普通书签进行重复校验
-        ...(data.id ? { id: { not: data.id } } : {}),
-      },
-    });
-
-    if (existing) {
-      throw new Error(`已有重复链接：[${existing.title}]，请修改！`);
-    }
-  }
-
-  const iconJson = JSON.stringify(data.icon || { itemType: 1, src: '' });
   // 解密前端加密传输的 widgetSettings，如未加密则原样保留
   const widgetSettings = decryptFromTransport(data.widgetSettings ?? '{}');
 
-  if (data.id) {
-    // 编辑
-    const updated = await db.itemIcon.update({
-      where: { id: data.id, userId: user.id },
-      data: {
-        title: data.title,
-        url: data.url,
-        lanUrl: data.lanUrl || '',
-        description: data.description || '',
-        openMethod: data.openMethod ?? 1,
-        pinned: data.pinned ?? false,
-        itemIconGroupId: data.itemIconGroupId,
-        iconJson,
-        widgetType: data.widgetType ?? '',
-        widgetSettings: widgetSettings,
-        ...(data.sort !== undefined ? { sort: data.sort } : {}),
-      },
-    });
-    revalidatePath('/');
-    return updated;
-  } else {
-    // 新增
-    const created = await db.itemIcon.create({
-      data: {
-        title: data.title,
-        url: data.url,
-        lanUrl: data.lanUrl || '',
-        description: data.description || '',
-        openMethod: data.openMethod ?? 1,
-        pinned: data.pinned ?? false,
-        itemIconGroupId: data.itemIconGroupId,
-        iconJson,
-        widgetType: data.widgetType ?? '',
-        widgetSettings: widgetSettings,
-        sort: data.sort ?? 9999,
-        userId: user.id,
-      },
-    });
-    revalidatePath('/');
-    return created;
-  }
+  const result = await panel.saveBookmark(user.id, {
+    id: data.id,
+    title: data.title,
+    url: data.url,
+    lanUrl: data.lanUrl,
+    description: data.description,
+    openMethod: data.openMethod,
+    pinned: data.pinned,
+    itemIconGroupId: data.itemIconGroupId,
+    icon: data.icon,
+    sort: data.sort,
+    widgetType: data.widgetType,
+    widgetSettings,
+  });
+
+  revalidatePath('/');
+  return result;
 }
 
 // 删除书签
@@ -129,18 +63,13 @@ export async function deleteItemIconsAction(ids: number[]) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Unauthorized');
 
-  await db.itemIcon.deleteMany({
-    where: {
-      id: { in: ids },
-      userId: user.id,
-    },
-  });
+  await panel.deleteBookmarks(user.id, ids);
 
   revalidatePath('/');
   return { success: true };
 }
 
-// 批量增加书签
+// 批量增加书签（导入场景，批量落库不做逐条查重）
 export async function addMultipleItemIconsAction(
   items: {
     title: string;
@@ -169,9 +98,7 @@ export async function addMultipleItemIconsAction(
     sort: 9999,
   }));
 
-  const created = await db.itemIcon.createMany({
-    data: insertData,
-  });
+  const created = await db.itemIcon.createMany({ data: insertData });
 
   revalidatePath('/');
   return created;
@@ -185,18 +112,7 @@ export async function saveItemIconSortAction(
   const user = await getCurrentUser();
   if (!user) throw new Error('Unauthorized');
 
-  await db.$transaction(
-    sortItems.map((item) =>
-      db.itemIcon.update({
-        where: {
-          id: item.id,
-          userId: user.id,
-          itemIconGroupId: groupId,
-        },
-        data: { sort: item.sort },
-      })
-    )
-  );
+  await panel.applyBookmarkSort(user.id, groupId, sortItems);
 
   revalidatePath('/');
   return { success: true };

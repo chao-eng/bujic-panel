@@ -96,6 +96,19 @@ CREATE TABLE "file" (
 );
 
 -- CreateTable
+CREATE TABLE "mcp_token" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" DATETIME NOT NULL,
+    "user_id" INTEGER NOT NULL,
+    "name" TEXT NOT NULL,
+    "token_hash" TEXT NOT NULL,
+    "scope" TEXT NOT NULL DEFAULT 'readonly',
+    "status" INTEGER NOT NULL DEFAULT 1,
+    "last_used_at" DATETIME
+);
+
+-- CreateTable
 CREATE TABLE "notice" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -132,4 +145,10 @@ CREATE INDEX "item_icon_group_user_id_tab_id_idx" ON "item_icon_group"("user_id"
 
 -- CreateIndex
 CREATE UNIQUE INDEX "module_config_user_id_name_key" ON "module_config"("user_id", "name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "mcp_token_token_hash_key" ON "mcp_token"("token_hash");
+
+-- CreateIndex
+CREATE INDEX "mcp_token_user_id_idx" ON "mcp_token"("user_id");
 

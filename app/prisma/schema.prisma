@@ -29,6 +29,7 @@ model User {
   viewTabs       ViewTab[]
   moduleConfigs  ModuleConfig[]
   files          File[]
+  mcpTokens      McpToken[]
 
   @@index([username, password])
   @@map("user")
@@ -148,6 +149,25 @@ model File {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("file")
+}
+
+// 对应 models.McpToken：MCP 访问令牌（AI Agent 操作个人面板的凭证）
+// 明文不落库，仅存 SHA-256 哈希；权限 scope 限制 Agent 能力边界
+model McpToken {
+  id         Int       @id @default(autoincrement())
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  userId     Int       @map("user_id")
+  name       String
+  tokenHash  String    @unique @map("token_hash") // SHA-256(明文)
+  scope      String    @default("readonly") // readonly | readwrite
+  status     Int       @default(1) // 1: 启用, 2: 删除
+  lastUsedAt DateTime? @map("last_used_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("mcp_token")
 }
 
 // 对应 models.Notice

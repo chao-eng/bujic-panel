@@ -13,6 +13,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/login') ||
     pathname.startsWith('/api/openness') ||
     pathname.startsWith('/api/crypto') ||  // 加密密钥端点，登录前即需访问
+    pathname.startsWith('/api/mcp') ||     // MCP 端点：由路由内部用 Bearer Token 鉴权，不走 Cookie
     pathname.startsWith('/uploads')
   ) {
     return NextResponse.next();

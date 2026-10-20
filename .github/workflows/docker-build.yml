@@ -1,9 +1,13 @@
 name: Build and Push Docker Image to Aliyun ACR
 
 on:
-  push:
-    branches:
-      - master
+  # 仅支持手动触发，构建时录入版本号作为镜像 tag
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '镜像版本号（例如 1.2.0 或 v1.2.0）'
+        required: true
+        type: string
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -24,12 +28,19 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 生成日期版本号（采用北京时区 Asia/Shanghai，防止 UTC 时差导致日期不准）
-      - name: Get Current Date Tag
-        id: get-date
+      # 校验并规范化手动录入的版本号
+      - name: Resolve Version Tag
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          echo "tag=$(TZ=Asia/Shanghai date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
-          echo "date_only=$(TZ=Asia/Shanghai date +'%Y%m%d')" >> $GITHUB_OUTPUT
+          version="$(echo "$INPUT_VERSION" | tr -d '[:space:]')"
+          if [ -z "$version" ]; then
+            echo "版本号不能为空" >&2
+            exit 1
+          fi
+          echo "tag=$version" >> $GITHUB_OUTPUT
+          echo "本次构建版本号: $version"
 
       # 登录到阿里云容器镜像服务 (ACR)
       - name: Log in to Aliyun Container Registry
@@ -51,10 +62,9 @@ jobs:
           # 关闭 SBOM/provenance 证明清单：ACR 会拒绝 oci.empty 清单导致推送失败
           provenance: false
           sbom: false
-          # 同时发布三个标签：具体分秒时间戳、日期和最新版（latest）
+          # 每次手动构建同时发布两个标签：录入的版本号与最新版（latest）
           tags: |
-            ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/${{ secrets.ALIYUN_REPOSITORY }}:${{ steps.get-date.outputs.tag }}
-            ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/${{ secrets.ALIYUN_REPOSITORY }}:${{ steps.get-date.outputs.date_only }}
+            ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/${{ secrets.ALIYUN_REPOSITORY }}:${{ steps.version.outputs.tag }}
             ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/${{ secrets.ALIYUN_REPOSITORY }}:latest
           # 启用 GitHub Actions 缓存，加速后续构建
           cache-from: type=gha

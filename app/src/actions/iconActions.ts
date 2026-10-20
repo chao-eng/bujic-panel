@@ -58,6 +58,9 @@ export async function editItemIconAction(data: {
   return result;
 }
 
+/** 新增/编辑书签后的落库结果（含 iconJson，供前端本地更新列表使用） */
+export type SavedItemIcon = Awaited<ReturnType<typeof editItemIconAction>>;
+
 // 删除书签
 export async function deleteItemIconsAction(ids: number[]) {
   const user = await getCurrentUser();

@@ -405,7 +405,7 @@ export default function SettingsModal({
       setMcpEndpoint(`${window.location.origin}/api/mcp`);
     }, 0);
     return () => clearTimeout(timer);
-  }, [isOpen, currentUser]);
+  }, [isOpen, currentUser, t.defaultAboutText, t.defaultDisclaimer]);
 
   const handleUpdateProfile = (e: React.FormEvent) => {
     e.preventDefault();

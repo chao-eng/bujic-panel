@@ -18,7 +18,9 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const saved = localStorage.getItem('locale') as Locale;
+    // 挂载后从 localStorage 恢复语言/主题：不能放进初始 state，否则服务端与客户端渲染不一致
     if (saved && (saved === 'zh' || saved === 'en')) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocaleState(saved);
     } else {
       const navLang = navigator.language.toLowerCase();

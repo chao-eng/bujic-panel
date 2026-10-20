@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useTransition, useEffect } from 'react';
+import React, { useState, useTransition } from 'react';
 import { useTranslation } from '../I18nProvider';
+import type { Dictionary } from '../../lib/i18n';
 import { editGroupAction, deleteGroupsAction, saveGroupSortAction } from '../../actions/groupActions';
 import {
   Dialog,
@@ -66,7 +67,7 @@ interface SortableGroupItemProps {
   handleConfirmDelete: (id: number) => void;
   handleMoveGroup: (groupId: number, tabId: number) => void;
   isPending: boolean;
-  t: any;
+  t: Dictionary;
 }
 
 function SortableGroupItem({
@@ -240,18 +241,27 @@ export default function GroupManageModal({
   const currentTab = localTabs.find((x) => x.id === activeManageTabId) || localTabs[0];
   const filteredLocalGroups = localGroups.filter((g) => g.tabId === (currentTab?.id ?? -1));
 
-  useEffect(() => {
-    setLocalGroups(groups);
-  }, [groups]);
+  // 渲染期同步 props → 本地副本（避免 effect 内同步 setState 造成级联渲染）
+  const [syncedGroups, setSyncedGroups] = useState(groups);
+  const [syncedTabs, setSyncedTabs] = useState(tabs);
+  const [prevOpenState, setPrevOpenState] = useState({ isOpen, activeTabId });
 
-  useEffect(() => {
+  if (syncedGroups !== groups) {
+    setSyncedGroups(groups);
+    setLocalGroups(groups);
+  }
+
+  if (syncedTabs !== tabs) {
+    setSyncedTabs(tabs);
     setLocalTabs(tabs);
     if (tabs.length > 0 && !tabs.some((x) => x.id === activeManageTabId)) {
       setActiveManageTabId(tabs[0].id);
     }
-  }, [tabs]);
+  }
 
-  useEffect(() => {
+  // 每次打开（或外层激活 Tab 变化）时重置编辑态
+  if (prevOpenState.isOpen !== isOpen || prevOpenState.activeTabId !== activeTabId) {
+    setPrevOpenState({ isOpen, activeTabId });
     if (isOpen) {
       setActiveManageTabId(activeTabId && tabs.some((x) => x.id === activeTabId) ? activeTabId : tabs[0]?.id || 0);
       setIsEditing(false);
@@ -260,7 +270,7 @@ export default function GroupManageModal({
       setMovingTabId(null);
       setErrorMsg('');
     }
-  }, [isOpen, activeTabId, tabs]);
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -294,8 +304,8 @@ export default function GroupManageModal({
           }));
           await saveGroupSortAction(sortItems, currentTab?.id);
           onRefresh();
-        } catch (e: any) {
-          setErrorMsg(e.message || t.saveFailed);
+        } catch (e) {
+          setErrorMsg(e instanceof Error ? e.message : t.saveFailed);
         }
       });
     }
@@ -339,8 +349,8 @@ export default function GroupManageModal({
         });
         setIsEditing(false);
         onRefresh();
-      } catch (e: any) {
-        setErrorMsg(e.message || t.saveFailed);
+      } catch (e) {
+        setErrorMsg(e instanceof Error ? e.message : t.saveFailed);
       }
     });
   };
@@ -355,8 +365,8 @@ export default function GroupManageModal({
       try {
         await deleteGroupsAction([id]);
         onRefresh();
-      } catch (e: any) {
-        setErrorMsg(e.message || t.saveFailed);
+      } catch (e) {
+        setErrorMsg(e instanceof Error ? e.message : t.saveFailed);
       }
     });
   };
@@ -374,8 +384,8 @@ export default function GroupManageModal({
           tabId: targetTabId,
         });
         onRefresh();
-      } catch (e: any) {
-        setErrorMsg(e.message || t.saveFailed);
+      } catch (e) {
+        setErrorMsg(e instanceof Error ? e.message : t.saveFailed);
       }
     });
   };

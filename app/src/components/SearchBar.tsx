@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Globe, ChevronDown } from 'lucide-react';
+import { Search, ChevronDown } from 'lucide-react';
 import { useTranslation } from './I18nProvider';
 import {
   DropdownMenu,
@@ -46,11 +46,12 @@ export default function SearchBar({ onLocalSearch }: SearchBarProps) {
   const [selectedEngine, setSelectedEngine] = useState(searchEngines[0]);
   const [query, setQuery] = useState('');
 
-  // 挂载时尝试从 localStorage 恢复用户首选搜索引擎
+  // 挂载时尝试从 localStorage 恢复用户首选搜索引擎（不能在初始 state 读取，否则水合不一致）
   useEffect(() => {
     const saved = localStorage.getItem('search_engine');
     if (saved) {
       const match = searchEngines.find((se) => se.name === saved);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (match) setSelectedEngine(match);
     }
   }, []);

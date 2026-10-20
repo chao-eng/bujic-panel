@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useTransition } from 'react';
+import React, { useState, useTransition } from 'react';
 import { useTranslation } from '../I18nProvider';
+import type { Dictionary } from '../../lib/i18n';
 import { editTabAction, saveTabSortAction, deleteTabAction, migrateAndDeleteTabAction } from '../../actions/tabActions';
 import {
   Dialog,
@@ -64,7 +65,7 @@ function TabSortableRow({
   handleDelete: (id: number) => void;
   handleMigrateDelete: (id: number, target: number) => void;
   isPending: boolean;
-  t: any;
+  t: Dictionary;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: tab.id,
@@ -178,11 +179,18 @@ export default function TabManageModal({ isOpen, onClose, tabs, onRefresh }: Tab
   const [migratingTabId, setMigratingTabId] = useState<number | null>(null);
   const [migrateTarget, setMigrateTarget] = useState<number | null>(null);
 
-  useEffect(() => {
-    setLocalTabs(tabs);
-  }, [tabs]);
+  // 渲染期同步 props → 本地副本（避免 effect 内同步 setState 造成级联渲染）
+  const [syncedTabs, setSyncedTabs] = useState<ViewTabType[]>(tabs);
+  const [wasOpen, setWasOpen] = useState(isOpen);
 
-  useEffect(() => {
+  if (syncedTabs !== tabs) {
+    setSyncedTabs(tabs);
+    setLocalTabs(tabs);
+  }
+
+  // 每次打开时重置编辑态
+  if (wasOpen !== isOpen) {
+    setWasOpen(isOpen);
     if (isOpen) {
       setIsEditing(false);
       setEditingTab(null);
@@ -191,7 +199,7 @@ export default function TabManageModal({ isOpen, onClose, tabs, onRefresh }: Tab
       setMigrateTarget(null);
       setErrorMsg('');
     }
-  }, [isOpen]);
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -215,8 +223,8 @@ export default function TabManageModal({ isOpen, onClose, tabs, onRefresh }: Tab
       try {
         await saveTabSortAction(reordered.map((x, i) => ({ id: x.id, sort: i + 1 })));
         onRefresh();
-      } catch (e: any) {
-        setErrorMsg(e.message || t.saveFailed);
+      } catch (e) {
+        setErrorMsg(e instanceof Error ? e.message : t.saveFailed);
       }
     });
   };
@@ -253,8 +261,8 @@ export default function TabManageModal({ isOpen, onClose, tabs, onRefresh }: Tab
         await editTabAction({ id: editingTab?.id, name, type });
         setIsEditing(false);
         onRefresh();
-      } catch (err: any) {
-        setErrorMsg(err.message || t.saveFailed);
+      } catch (err) {
+        setErrorMsg(err instanceof Error ? err.message : t.saveFailed);
       }
     });
   };

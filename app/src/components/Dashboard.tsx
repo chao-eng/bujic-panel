@@ -14,11 +14,13 @@ import {
   deleteItemIconsAction,
   addMultipleItemIconsAction,
 } from '../actions/iconActions';
+import type { SavedItemIcon } from '../actions/iconActions';
 import { editGroupAction, getGroupsAction } from '../actions/groupActions';
 import { getTabsAction, editTabAction } from '../actions/tabActions';
 import { logoutAction } from '../actions/userActions';
 import { safeIconSrc } from '../lib/iconSrc';
 import { resolvePollMs } from '../lib/widgetPoll';
+import type { WidgetFetchResult } from '../lib/widgets/providers/types';
 import {
   Settings,
   FolderEdit,
@@ -60,6 +62,35 @@ interface ItemIconType {
   widgetSettings?: string;
 }
 
+/** 备份文件中的分组（兼容新旧格式） */
+interface BackupGroup {
+  id: number;
+  title: string;
+  icon?: string;
+  groupType?: string;
+  tabId?: number;
+}
+
+/** 备份文件中的书签 */
+interface BackupIcon {
+  id: number;
+  title: string;
+  url: string;
+  lanUrl?: string | null;
+  description?: string | null;
+  openMethod?: number;
+  pinned?: boolean;
+  icon?: { itemType: number; src: string };
+  itemIconGroupId: number;
+}
+
+/** 备份文件结构（旧格式无 tabs 字段） */
+interface BackupConfig {
+  groups: BackupGroup[];
+  icons: BackupIcon[];
+  tabs?: { id: number; name: string; type: 'card' | 'list' }[];
+}
+
 interface DashboardProps {
   user: {
     id: number;
@@ -99,7 +130,7 @@ export default function Dashboard({
       try {
         const saved = Number(localStorage.getItem(ACTIVE_TAB_KEY));
         if (initialTabs.some((x) => x.id === saved)) return saved;
-      } catch (e) {}
+      } catch {}
       return initialTabs[0].id;
     }
     return 0;
@@ -143,13 +174,17 @@ export default function Dashboard({
       const stored = localStorage.getItem('bujic-collapsed-groups');
       if (stored) {
         const ids: number[] = JSON.parse(stored);
-        if (ids.length > 0) setCollapsedGroups(new Set(ids));
+        if (ids.length > 0) {
+          // 挂载后从 localStorage 恢复：不能放到初始 state，否则服务端与客户端渲染不一致
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setCollapsedGroups(new Set(ids));
+        }
       }
     } catch {}
   }, []);
 
   // 监控数据状态
-  const [widgetsStats, setWidgetsStats] = useState<Record<number, any>>({});
+  const [widgetsStats, setWidgetsStats] = useState<Record<number, WidgetFetchResult>>({});
   const [isWidgetsLoading, setIsWidgetsLoading] = useState(false);
   const [pageVisible, setPageVisible] = useState(true);
 
@@ -165,10 +200,7 @@ export default function Dashboard({
     if (!pageVisible) return;
 
     const widgetIcons = icons.filter((icon) => icon.widgetType);
-    if (widgetIcons.length === 0) {
-      setWidgetsStats({});
-      return;
-    }
+    if (widgetIcons.length === 0) return;
 
     const timers: NodeJS.Timeout[] = [];
 
@@ -180,7 +212,7 @@ export default function Dashboard({
         if (res.ok) {
           const json = await res.json();
           if (json.code === 0 && json.data) {
-            setWidgetsStats((prev) => ({ ...prev, ...json.data }));
+            setWidgetsStats((prev) => ({ ...prev, ...(json.data as Record<number, WidgetFetchResult>) }));
           }
         }
       } catch (e) {
@@ -265,17 +297,17 @@ export default function Dashboard({
   const handleRefreshGroups = async () => {
     try {
       const refreshed = await getGroupsAction();
-      setGroups(refreshed as any);
-    } catch (e) {}
+      setGroups(refreshed as GroupType[]);
+    } catch {}
   };
 
   const handleRefreshTabs = async () => {
     try {
       const refreshed = await getTabsAction();
-      setTabs(refreshed as any);
+      setTabs(refreshed as ViewTabType[]);
       // 若激活 Tab 已被删除，回退到第一个 Tab
       setActiveTabId((prev) => {
-        if (!refreshed.some((x: any) => x.id === prev)) {
+        if (!refreshed.some((x) => x.id === prev)) {
           const first = refreshed[0]?.id ?? 0;
           try {
             localStorage.setItem(ACTIVE_TAB_KEY, String(first));
@@ -284,7 +316,7 @@ export default function Dashboard({
         }
         return prev;
       });
-    } catch (e) {}
+    } catch {}
   };
 
   // 拖拽完排序本地更新并静默调用 Server Action 物理保存
@@ -352,7 +384,7 @@ export default function Dashboard({
     }
   };
 
-  const handleSaveIconSuccess = (saved: any) => {
+  const handleSaveIconSuccess = (saved: SavedItemIcon) => {
     const exists = icons.some((i) => i.id === saved.id);
     const parsedSaved = {
       ...saved,
@@ -391,17 +423,17 @@ export default function Dashboard({
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
-        const config = JSON.parse(event.target?.result as string);
+        const config = JSON.parse(event.target?.result as string) as BackupConfig;
         if (config.groups && config.icons) {
           setImportError(false);
           setImportMsg(t.importingData);
 
           // 若无 tabs 字段 → 旧格式：按旧双形态重建默认 Tab
           const tabDefs: { name: string; type: 'card' | 'list'; id: number }[] = (config.tabs && config.tabs.length > 0
-            ? config.tabs.map((tb: any, i: number) => ({ id: tb.id, name: tb.name, type: tb.type }))
+            ? config.tabs.map((tb) => ({ id: tb.id, name: tb.name, type: tb.type }))
             : (() => {
-                const hasCard = config.groups.some((g: any) => g.groupType !== 'webpage');
-                const hasList = config.groups.some((g: any) => g.groupType === 'webpage');
+                const hasCard = config.groups.some((g) => g.groupType !== 'webpage');
+                const hasList = config.groups.some((g) => g.groupType === 'webpage');
                 const defs: { id: number; name: string; type: 'card' | 'list' }[] = [];
                 if (hasCard) defs.push({ id: -1, name: '收藏', type: 'card' });
                 if (hasList) defs.push({ id: -2, name: '书签', type: 'list' });
@@ -419,7 +451,7 @@ export default function Dashboard({
 
           for (const g of config.groups) {
             // 确定目标 tab：优先使用组自带 tabId，否则旧格式按形态取第一个匹配 Tab
-            let tabKey: string | number = g.tabId;
+            let tabKey: string | number | undefined = g.tabId;
             if (tabKey === undefined || tabKey === null || tabKey === 0 || tabKey === -1 || tabKey === -2) {
               const isList = g.groupType === 'webpage';
               const matched = tabDefs.find((x) => (isList ? x.type === 'list' : x.type === 'card'));
@@ -430,14 +462,14 @@ export default function Dashboard({
 
             const createdGroup = await editGroupAction({
               title: g.title,
-              icon: g.icon,
-              groupType: g.groupType,
+              icon: g.icon || '',
+              groupType: g.groupType || 'website',
               tabId: targetTabId,
             });
 
-            const subIcons = config.icons.filter((i: any) => i.itemIconGroupId === g.id);
+            const subIcons = config.icons.filter((i) => i.itemIconGroupId === g.id);
             if (subIcons.length > 0) {
-              const itemsToCreate = subIcons.map((i: any) => ({
+              const itemsToCreate = subIcons.map((i) => ({
                 title: i.title,
                 url: i.url,
                 lanUrl: i.lanUrl || '',
@@ -456,7 +488,7 @@ export default function Dashboard({
           setImportError(true);
           setImportMsg(t.importInvalidFormat);
         }
-      } catch (err) {
+      } catch {
         setImportError(true);
         setImportMsg(t.importParseFailed);
       }

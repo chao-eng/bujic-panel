@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useTransition } from 'react';
 import { useTranslation } from '../I18nProvider';
 import { editItemIconAction } from '../../actions/iconActions';
+import type { SavedItemIcon } from '../../actions/iconActions';
 import { DynamicIcon } from '../IconGrid';
 import {
   Dialog,
@@ -14,7 +15,7 @@ import {
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
-import { Loader2, Globe, Sparkles, Upload } from 'lucide-react';
+import { Loader2, Sparkles, Upload } from 'lucide-react';
 import { encryptSensitive } from '../../lib/client-crypto';
 import { safeIconSrc } from '../../lib/iconSrc';
 import { resolvePollMs, normalizePollMsSec } from '../../lib/widgetPoll';
@@ -56,7 +57,7 @@ interface EditIconModalProps {
   tabs: ViewTabType[];
   activeTabId: number;
   editingIcon: ItemIconType | null;
-  onSave: (saved: any) => void;
+  onSave: (saved: SavedItemIcon) => void;
 }
 
 export default function EditIconModal({
@@ -98,12 +99,6 @@ export default function EditIconModal({
 
   // 目标 Tab 状态（两级联动）
   const [tabId, setTabId] = useState<number>(0);
-  const [availableTabs, setAvailableTabs] = useState<ViewTabType[]>(tabs);
-
-  // Widget 只能放在卡片 Tab；其余书签默认进入当前激活 Tab
-  useEffect(() => {
-    setAvailableTabs(tabs);
-  }, [tabs]);
 
   const filteredGroups = groups.filter((g) => g.tabId === tabId);
 
@@ -112,9 +107,11 @@ export default function EditIconModal({
   const [isUploading, setIsUploading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // 初始化编辑数据
+  // 初始化编辑数据：打开弹窗/切换编辑对象时按弹出源重置整张表单
+  // 表单项较多且相互关联（Tab/分组联动、各监控凭证互斥），故保留 effect 内集中初始化
   useEffect(() => {
     if (editingIcon) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTitle(editingIcon.title);
       setUrl(editingIcon.url);
       setLanUrl(editingIcon.lanUrl || '');
@@ -230,7 +227,7 @@ export default function EditIconModal({
           setWgEasyPassword('');
           setKumaSlug('default');
         }
-      } catch (e) {
+      } catch {
         setBeszelEmail('');
         setBeszelPassword('');
         setBeszelSystemName('');
@@ -301,7 +298,7 @@ export default function EditIconModal({
       } else {
         setErrorMsg(data.message || t.fetchFailed);
       }
-    } catch (e) {
+    } catch {
       setErrorMsg(t.fetchFailed);
     } finally {
       setIsCrawling(false);
@@ -331,7 +328,7 @@ export default function EditIconModal({
       } else {
         setErrorMsg(data.message || t.saveFailed);
       }
-    } catch (e) {
+    } catch {
       setErrorMsg(t.saveFailed);
     } finally {
       setIsUploading(false);
@@ -346,7 +343,7 @@ export default function EditIconModal({
         const base64 = window.btoa(unescape(encodeURIComponent(cleanedSvg)));
         setIconSrc(`data:image/svg+xml;base64,${base64}`);
         setIconType(1); // 标识为外部图片模式
-      } catch (err) {
+      } catch {
         setIconSrc(val);
       }
     } else {
@@ -362,7 +359,7 @@ export default function EditIconModal({
 
     startTransition(async () => {
       try {
-        let settingsObj: any = {};
+        let settingsObj: Record<string, unknown> = {};
         if (widgetType === 'beszel') {
           settingsObj = {
             email: beszelEmail,
@@ -418,8 +415,8 @@ export default function EditIconModal({
         });
         onSave(saved);
         onClose();
-      } catch (e: any) {
-        setErrorMsg(e.message || t.saveFailed);
+      } catch (e) {
+        setErrorMsg(e instanceof Error ? e.message : t.saveFailed);
       }
     });
   };
@@ -451,7 +448,7 @@ export default function EditIconModal({
                 // Widget 强制归入第一个卡片 Tab，并选中其首个分组
                 const widgetTypes = ['beszel', 'qbittorrent', 'jellyfin', 'umami', 'wg-easy', 'uptime-kuma'];
                 if (widgetTypes.includes(type)) {
-                  const cardTab = availableTabs.find((tb) => tb.type === 'card') || availableTabs[0];
+                  const cardTab = tabs.find((tb) => tb.type === 'card') || tabs[0];
                   if (cardTab) {
                     setTabId(cardTab.id);
                     const cardGroups = groups.filter((g) => g.tabId === cardTab.id);
@@ -769,7 +766,7 @@ export default function EditIconModal({
                 }}
                 className="w-full h-9 px-3 bg-white/5 border border-white/5 rounded-xl text-white outline-none focus:border-indigo-500/40 text-xs transition"
               >
-                {availableTabs.map((tab) => (
+                {tabs.map((tab) => (
                   <option key={tab.id} value={tab.id} className="bg-[#12131a] text-white">
                     {tab.name}（{tab.type === 'list' ? t.tabTypeList : t.tabTypeCard}）
                   </option>

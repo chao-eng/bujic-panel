@@ -3,12 +3,12 @@ import path from 'path';
 import fs from 'fs';
 
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
   try {
     const { path: pathSegments } = await params;
-    
+
     let uploadBaseDir: string | undefined;
     if (process.env.DATA_DIR) {
       uploadBaseDir = path.join(/*turbopackIgnore: true*/ process.env.DATA_DIR, 'uploads');
@@ -50,7 +50,8 @@ export async function GET(
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     });
-  } catch (err: any) {
-    return new NextResponse(err.message || 'Internal Error', { status: 500 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal Error';
+    return new NextResponse(message, { status: 500 });
   }
 }

@@ -72,7 +72,8 @@ export async function POST(req: NextRequest) {
       code: 0,
       data: fileRecord,
     });
-  } catch (e: any) {
-    return NextResponse.json({ code: 500, message: e.message || '内部错误' }, { status: 500 });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : '内部错误';
+    return NextResponse.json({ code: 500, message }, { status: 500 });
   }
 }

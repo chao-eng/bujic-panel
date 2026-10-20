@@ -246,7 +246,15 @@ export async function updateUserAction(data: {
     }
   }
 
-  const updateData: any = {
+  const updateData: {
+    name?: string;
+    mail?: string;
+    status?: number;
+    role?: number;
+    username?: string;
+    password?: string;
+    token?: string | null;
+  } = {
     name: data.name,
     mail: data.mail,
     status: data.status,

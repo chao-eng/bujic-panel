@@ -100,8 +100,8 @@ export class BeszelProvider implements WidgetProvider {
       cpu: system.info?.cpu ?? 0,
       memory: system.info?.mp ?? 0,
       disk: system.info?.dp ?? 0,
-      uptime: system.info?.up ?? 0,
-      temperature: system.info?.t,
+      uptime: system.info?.u ?? 0,
+      temperature: system.info?.dt ?? undefined,
     };
   }
 }

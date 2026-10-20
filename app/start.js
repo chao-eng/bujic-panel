@@ -1,7 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 
 // 1. 推导数据库路径与 URL
 const dataDir = process.env.DATA_DIR || "/app/data";
@@ -61,7 +60,7 @@ async function syncDatabaseSchema() {
     try {
       await prisma.$queryRaw`SELECT 1 FROM "user" LIMIT 1`;
       console.log("[Start] 核心表 user 存在，跳过初始化。");
-    } catch (e) {
+    } catch {
       isDbEmpty = true;
     }
 
@@ -99,7 +98,7 @@ async function upgradeExistingSchema() {
   try {
     await prisma.$queryRaw`SELECT 1 FROM "view_tab" LIMIT 1`;
     hasViewTab = true;
-  } catch (e) {
+  } catch {
     hasViewTab = false;
   }
   if (!hasViewTab) {
@@ -117,10 +116,10 @@ async function upgradeExistingSchema() {
     `);
     try {
       await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX "view_tab_id_key" ON "view_tab"("id")`);
-    } catch (e) {}
+    } catch {}
     try {
       await prisma.$executeRawUnsafe(`CREATE INDEX "view_tab_user_id_sort_idx" ON "view_tab"("user_id", "sort")`);
-    } catch (e) {}
+    } catch {}
   }
 
   // 2. 确保 item_icon_group.tab_id 列存在
@@ -128,7 +127,7 @@ async function upgradeExistingSchema() {
   try {
     const cols = await prisma.$queryRaw`PRAGMA table_info("item_icon_group")`;
     hasTabId = (cols || []).some((c) => c.name === 'tab_id');
-  } catch (e) {}
+  } catch {}
   if (!hasTabId) {
     console.log("[Start] 存量库缺少 item_icon_group.tab_id 列，正在补充...");
     await prisma.$executeRawUnsafe(`ALTER TABLE "item_icon_group" ADD COLUMN "tab_id" INTEGER NOT NULL DEFAULT 0`);
@@ -153,7 +152,7 @@ async function backfillUserTabs() {
 
     const createdTabs = [];
     for (let i = 0; i < tabs.length; i++) {
-      const res = await prisma.$executeRawUnsafe(
+      await prisma.$executeRawUnsafe(
         `INSERT INTO "view_tab" ("created_at", "updated_at", "name", "type", "sort", "user_id") VALUES (datetime('now'), datetime('now'), ?, ?, ?, ?)`,
         tabs[i].name, tabs[i].type, i + 1, u.id
       );

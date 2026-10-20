@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
   let urlObj: URL;
   try {
     urlObj = new URL(target);
-  } catch (e) {
+  } catch {
     return NextResponse.json({ code: 1001, message: '无效地址' }, { status: 400 });
   }
 
@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
         'Content-Security-Policy': "default-src 'none'; sandbox",
       },
     });
-  } catch (e) {
+  } catch {
     return new NextResponse('Proxy Error', { status: 502 });
   }
 }

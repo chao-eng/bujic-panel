@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext } from 'react';
 
 export const dictionaries = {
   zh: {

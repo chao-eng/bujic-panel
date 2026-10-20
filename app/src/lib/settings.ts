@@ -8,7 +8,7 @@ export async function getSystemSettingValue(name: string): Promise<string | null
   try {
     const row = await db.systemSetting.findUnique({ where: { configName: name } });
     return row?.configValue ?? null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -45,7 +45,7 @@ export async function getSiteBrand(): Promise<SiteBrand> {
       icon: parsed?.icon || '',
       v: parsed?.v || 0,
     };
-  } catch (e) {
+  } catch {
     return { ...DEFAULT_BRAND };
   }
 }
@@ -64,7 +64,7 @@ export async function getLanSubnets(): Promise<string[]> {
   try {
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed.filter((s) => typeof s === 'string') : [];
-  } catch (e) {
+  } catch {
     return [];
   }
 }

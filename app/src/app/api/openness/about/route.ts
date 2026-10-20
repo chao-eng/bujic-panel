@@ -18,7 +18,7 @@ export async function GET() {
         about: about?.configValue || '',
       },
     });
-  } catch (e) {
+  } catch {
     return NextResponse.json({
       code: 0,
       data: {

@@ -3,8 +3,6 @@ import path from 'path';
 import fs from 'fs';
 
 const prismaClientSingleton = () => {
-  let databaseUrl: string;
-
   // 优先使用 DATA_DIR 推导数据库绝对路径
   // 未设置 DATA_DIR 时使用默认值 'data'（相对于 app 目录）
   const dataDir = process.env.DATA_DIR || 'data';
@@ -15,7 +13,7 @@ const prismaClientSingleton = () => {
   if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
   }
-  databaseUrl = `file:${absoluteDbPath}`;
+  const databaseUrl = `file:${absoluteDbPath}`;
 
   const client = new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],

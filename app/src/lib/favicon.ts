@@ -75,7 +75,7 @@ export async function getPageTitle(targetUrl: string, rawHtml?: string): Promise
       }
       return title;
     }
-  } catch (e) {
+  } catch {
     // 容错
   }
   return '';
@@ -118,7 +118,7 @@ export function findFaviconUrl(html: string, targetUrl: string): string {
     }
 
     return iconUrl;
-  } catch (e) {
+  } catch {
     return '';
   }
 }
@@ -185,7 +185,7 @@ export async function downloadFavicon(
     });
 
     return relativeSrc;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -211,7 +211,7 @@ export async function fetchTitleAndIcon(
       const arrayBuffer = await res.arrayBuffer();
       html = new TextDecoder('utf-8').decode(Buffer.from(arrayBuffer).subarray(0, 512 * 1024));
     }
-  } catch (e) {
+  } catch {
     // 捕获超时或网络连接失败，交给后边直接使用 url 协议头抓取 title 兜底
   }
 
@@ -224,7 +224,7 @@ export async function fetchTitleAndIcon(
       const downloaded = await downloadFavicon(iconUrl, new URL(url).hostname, userId);
       if (downloaded) localIconSrc = downloaded;
     }
-  } catch (e) {
+  } catch {
     // 容错：图标抓取失败不阻塞
   }
 

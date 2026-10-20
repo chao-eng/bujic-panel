@@ -31,7 +31,7 @@ async function getBrand() {
         icon: brandIconWithVersion(parsed?.icon || '', parsed?.v || 0),
       };
     }
-  } catch (e) {}
+  } catch {}
   return { name: '', icon: '/logo.svg' };
 }
 

@@ -15,14 +15,14 @@ export async function GET() {
         const val = JSON.parse(setting.configValue);
         loginCaptcha = !!val.loginCaptcha;
         register = !!val.register;
-      } catch (e) {}
+      } catch {}
     }
 
     return NextResponse.json({
       code: 0,
       data: { loginCaptcha, register },
     });
-  } catch (e) {
+  } catch {
     return NextResponse.json({
       code: 0,
       data: { loginCaptcha: false, register: false },

@@ -24,7 +24,7 @@ export function resolveOpenUrl(url: string, lanUrl: string | null | undefined, i
         lanUrlObj.pathname = baseUrl.pathname;
         lanUrlObj.search = baseUrl.search;
         return lanUrlObj.toString();
-      } catch (e) {
+      } catch {
         return ensureScheme(lan);
       }
     }
@@ -42,7 +42,7 @@ function normalizeUrlBase(input: string): string {
   try {
     const u = new URL(withScheme);
     return u.toString();
-  } catch (e) {
+  } catch {
     return '';
   }
 }

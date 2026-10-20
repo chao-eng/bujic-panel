@@ -12,7 +12,7 @@ export async function GET() {
         icon: brand.icon || '',
       },
     });
-  } catch (e) {
+  } catch {
     return NextResponse.json({ code: 0, data: { name: '', icon: '' } });
   }
 }

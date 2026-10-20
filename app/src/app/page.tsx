@@ -68,7 +68,7 @@ export default async function HomePage() {
       if (icon.iconJson) {
         iconParsed = JSON.parse(icon.iconJson);
       }
-    } catch (e) {}
+    } catch {}
     return {
       ...icon,
       icon: iconParsed,

@@ -26,7 +26,7 @@ try {
       }
     });
   }
-} catch (e) {}
+} catch {}
 
 // 从 DATA_DIR 推导 DATABASE_URL
 if (!process.env.DATABASE_URL) {

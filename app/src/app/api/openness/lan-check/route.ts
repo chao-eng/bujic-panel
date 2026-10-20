@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
       code: 0,
       data: { isLan, enabled: true, ip: clientIp, host },
     });
-  } catch (e) {
+  } catch {
     return NextResponse.json({ code: 0, data: { isLan: false, enabled: false } });
   }
 }

@@ -29,7 +29,7 @@ export async function verifyJWT(token: string): Promise<{ userId: number; userna
   try {
     const { payload } = await jwtVerify(token, SECRET_KEY);
     return payload as { userId: number; username: string; role: number };
-  } catch (err) {
+  } catch {
     return null;
   }
 }
@@ -63,7 +63,7 @@ export async function getCurrentUser() {
     }
 
     return user;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -104,7 +104,7 @@ export async function verifyRequestAuth(req: Request) {
     }
 
     return user;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
